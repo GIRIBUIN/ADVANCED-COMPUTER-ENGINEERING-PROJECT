@@ -82,20 +82,34 @@ git push origin branchname
 
 ---
 
-## ⚙️ 개발 환경 설정
+## 개발 환경 설정
 
 이 프로젝트는 Docker 기반으로 동작하므로, 모든 팀원은 아래 절차에 따라 환경을 설정해야 합니다.
 
-1.  **Docker Desktop 설치:**
-2.  **프로젝트 클론:**
-    ```bash
-    git clone [저장소 주소]
-    cd ReviewAnalyzer
-    ```
-3.  **Docker 컨테이너 실행:**
-    `src` 폴더로 이동하여 아래 명령어를 실행합니다.
-    ```bash
-    cd src
-    docker compose up --build
-    ```
-4.  **테스트:** 웹 브라우저에서 `http://localhost:5000` 으로 접속하여 초기 화면이 보이는지 확인합니다.
+1.  프로그램
+- git + sourcetree: 깃허브 유용성 관련
+- Docker Desktop: 필수 설치. 설치 후 실행한 상태에서 진행해야 합니다!
+- VS code: Code Editor
+
+2.  프로젝트 가져오기
+- 자신이 원하는 위치에 git clone 받고 진행합니다.(ReviewAnalyzer라는 폴더에 클론을 받았다고 생각하고 진행)
+-  VS code에서 ReviewAnalyzer 폴더 열고, Terminal을 엽니다.
+```
+# Python 가상 환경 생성(한 번만 하면 됩니다!)
+pytohn -m venv venv
+
+# 가상 환경 활성화(터미널을 새로 열 때마다 실행하면 됩니다) cmd에서하면 됩니다.
+.\venv\Scripts\Activate
+# 성공하면 터미널 프롬프트 앞에 (venv)가 표시됩니다.
+```
+
+3. Docker 컨테이너 실행  
+- src 폴더 안에서 명령어를 실행해야 함(cd 명령어로 이동)
+```VS code terminal
+ReviewAnalyzer>src> docker compose up --build
+# web-1, db-1의 로그에서 오류가 없는지 확인
+# http://localhost:5000에 접속하여 화면이 나타나면 정상입니다.
+```
+
+4.  그 외
+- 컨테이너 삭제하고 싶으면 'docker compose down' 실행
