@@ -1,0 +1,18 @@
+# Virtual Environments
+venv/
+.venv/
+env/
+.env/
+
+# Byte-compiled / optimized / DLL files
+__pycache__/
+
+# Docker
+src/reviews_data/
+
+# vscode 설정 파일
+.vscode/
+
+# --- Other ---
+# 로그 파일
+*.log

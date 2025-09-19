@@ -1,0 +1,18 @@
+# Git
+.git
+.gitignore
+
+# Docker
+mysql_data/
+
+# Python
+venv/
+.venv/
+__pycache__/
+*.pyc
+
+# VS Code
+.vscode/
+
+# README
+README.md

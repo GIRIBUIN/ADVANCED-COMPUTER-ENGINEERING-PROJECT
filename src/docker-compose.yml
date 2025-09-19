@@ -1,0 +1,26 @@
+services:
+  web:
+    # 현재 폴더(.)를 기준으로 Docker 이미지를 빌드
+    build: .
+    # 컨테이너 : 호스트
+    ports:
+      - "5000:5000"
+    volumes:
+      - ./app:/app/app
+    # db 서비스가 시작된 후에 실행되도록 의존성을 설정
+    depends_on:
+      - db
+    # Flask 앱 실행에 필요한 환경변수
+    # environment:
+    #   - FLASK_APP=app
+    #   - FLASK_DEBUG=1 # 개발 중에는 디버그 모드를 켜면 편리합니다.
+
+  db:
+    image: mysql:8.0
+    volumes:
+      - ./mysql_data:/var/lib/mysql
+    environment:
+      MYSQL_ROOT_PASSWORD: 설정해야함
+      MYSQL_DATABASE: ReviewAnalyzer_DB
+      MYSQL_USER: user
+      MYSQL_PASSWORD: password
