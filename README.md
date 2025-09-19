@@ -112,4 +112,4 @@ ReviewAnalyzer>src> docker compose up --build
 ```
 
 4.  그 외
-- 컨테이너 삭제하고 싶으면 'docker compose down' 실행
+- 컨테이너 삭제하고 싶으면 'docker compose down' 실행하면 됩니다.
