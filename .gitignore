@@ -16,3 +16,5 @@ src/reviews_data/
 # --- Other ---
 # 로그 파일
 *.log
+# mysql
+mysql_data/
