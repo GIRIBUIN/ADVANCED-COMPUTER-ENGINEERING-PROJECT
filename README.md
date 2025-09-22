@@ -98,7 +98,8 @@ git push origin branchname
 # Python 가상 환경 생성(한 번만 하면 됩니다!)
 pytohn -m venv venv
 
-# 가상 환경 활성화(터미널을 새로 열 때마다 실행하면 됩니다) cmd에서하면 됩니다.
+# 가상 환경 활성화(터미널을 새로 열 때마다 실행하면 됩니다)
+# python 터미널을 cmd로 바꿔서 하면 됩니다.
 .\venv\Scripts\Activate
 # 성공하면 터미널 프롬프트 앞에 (venv)가 표시됩니다.
 ```
@@ -106,7 +107,7 @@ pytohn -m venv venv
 3. Docker 컨테이너 실행  
 - src 폴더 안에서 명령어를 실행해야 함(cd 명령어로 이동)
 ```VS code terminal
-ReviewAnalyzer>src> docker compose up --build
+(venv) ReviewAnalyzer>src> docker compose up --build
 # web-1, db-1의 로그에서 오류가 없는지 확인
 # http://localhost:5000에 접속하여 화면이 나타나면 정상입니다.
 ```
