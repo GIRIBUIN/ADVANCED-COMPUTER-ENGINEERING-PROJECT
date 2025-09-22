@@ -15,12 +15,17 @@ services:
     #   - FLASK_APP=app
     #   - FLASK_DEBUG=1 # 개발 중에는 디버그 모드를 켜면 편리합니다.
 
-  db:
-    image: mysql:8.0
-    volumes:
-      - ./mysql_data:/var/lib/mysql
-    environment:
-      MYSQL_ROOT_PASSWORD: 설정해야함
+    db:
+      image: mysql:8.0
+      restart: always
+      container_name: mysql_container
+      ports:
+        - "3307:3306"
+      volumes:
+        - ./mysql_data:/var/lib/mysql
+      environment:
+      MYSQL_ROOT_HOST: '%'
+      MYSQL_ROOT_PASSWORD: konkuk123!
       MYSQL_DATABASE: ReviewAnalyzer_DB
       MYSQL_USER: user
       MYSQL_PASSWORD: password
