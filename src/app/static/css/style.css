@@ -1,0 +1,159 @@
+body {
+    font-family: 'Roboto', sans-serif;
+    background-color: #f0f2f5;
+    margin: 0;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    min-height: 100vh;
+}
+
+.container {
+    background-color: #ffffff;
+    border-radius: 12px;
+    box-shadow: 0 4px 20px rgba(0, 0, 0, 0.1);
+    width: 90%;
+    max-width: 1000px;
+    padding: 30px;
+    box-sizing: border-box;
+}
+
+/* 상단 부분 */
+.top-section {
+    text-align: center;
+    padding-bottom: 20px;
+    border-bottom: 1px solid #e0e0e0;
+}
+
+.main-title {
+    font-size: 2.5rem;
+    font-weight: 700;
+    color: #333;
+    margin-bottom: 10px;
+}
+
+.description {
+    font-size: 1rem;
+    color: #666;
+    max-width: 600px;
+    margin: 0 auto;
+}
+
+/* 하단 부분 */
+.bottom-section {
+    padding-top: 30px;
+}
+
+.keyword-input-container {
+    margin-bottom: 20px;
+}
+
+.input-label {
+    display: block;
+    font-size: 1rem;
+    color: #555;
+    margin-bottom: 8px;
+    font-weight: 700;
+}
+
+.sub-text {
+    font-weight: 400;
+    color: #888;
+}
+
+.text-input {
+    width: 100%;
+    padding: 12px 15px;
+    border: 1px solid #ddd;
+    border-radius: 8px;
+    font-size: 1rem;
+    box-sizing: border-box;
+    margin-bottom: 15px;
+}
+
+.text-input::placeholder {
+    color: #aaa;
+}
+
+.placeholder-text {
+    font-size: 0.85rem;
+    color: #888;
+    margin-top: 5px;
+}
+
+/* 두 개의 열 레이아웃 */
+.two-column-layout {
+    display: flex;
+    gap: 30px;
+}
+
+.left-column, .right-column {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+}
+
+.url-analysis-container {
+    margin-bottom: 15px;
+}
+
+.analyze-button {
+    background-color: #6a5acd;
+    color: #fff;
+    border: none;
+    padding: 15px 25px;
+    border-radius: 8px;
+    font-size: 1rem;
+    font-weight: 700;
+    cursor: pointer;
+    transition: background-color 0.3s ease;
+    width: 100%;
+    margin-top: 15px;
+}
+
+.analyze-button:hover {
+    background-color: #4a50b3;
+}
+
+/* 분석 상자 스타일 (주요 수정 부분) */
+.analysis-feature-box {
+    background-color: #f7f9fc;
+    border: 1px solid #e0e0e0;
+    border-radius: 12px;
+    padding: 20px;
+    flex: 1;
+    margin-bottom: 15px;
+    display: flex; /* Flexbox를 적용하여 내부 요소 정렬 */
+    align-items: flex-start; /* 아이콘과 텍스트 그룹을 위쪽에 정렬 */
+    gap: 15px;
+}
+
+.text-group {
+    display: flex;
+    flex-direction: column; /* 제목과 문단을 세로로 정렬 */
+}
+
+.analysis-feature-box h3 {
+    margin: 0;
+    font-size: 1.1rem;
+    color: #444;
+}
+
+.analysis-feature-box p {
+    font-size: 0.9rem;
+    color: #777;
+    margin: 5px 0 0 0; /* 제목 아래에 작은 여백 추가 */
+}
+
+.icon-placeholder {
+    width: 30px;
+    height: 30px;
+    background-color: #5c62d6;
+    border-radius: 50%;
+    flex-shrink: 0;
+}
+
+.url-box .icon-placeholder { background-color: #88d4d4; }
+.right-column .analysis-feature-box:nth-of-type(1) .icon-placeholder { background-color: #d1b5e8; }
+.right-column .analysis-feature-box:nth-of-type(2) .icon-placeholder { background-color: #b2e88a; }
+.right-column .analysis-feature-box:nth-of-type(3) .icon-placeholder { background-color: #d1b5e8; }
