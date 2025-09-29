@@ -1,0 +1,12 @@
+package env 묻제로 가상 환경에서 돌림.
+Terminal --> python3 -m venv venv
+             source venv/bin/activate  # 활성화
+             deactivate # 비활성화
+
+모듈 설치
+pip install google-generativeai (안되면 pip upgrade 필요)
+pip install dotenv
+
+.env
+https://aistudio.google.com/app/api-keys
+GOOGLE_API_KEY=your_api_key_here
