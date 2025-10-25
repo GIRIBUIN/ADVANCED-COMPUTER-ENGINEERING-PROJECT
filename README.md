@@ -25,17 +25,26 @@
 ## 폴더 구조
 
 ```
-ReviewAnalyzer/
-├── README.md         # 프로젝트 개요 및 가이드
-├── src/              # 소스 코드
-├── docs/             # 과제 산출물
-│   ├── 01_project_plan/
-│   ├── 02_requirements/
-│   ├── 03_design/
-│   ├── 04_final_report/
-│   └── meeting_logs/
-├── archive/          # 참고용 비공식 자료 (초기 아이디어 등)
-└── .gitignore        # Git 추적 제외 목록
+ReviewAnalyzer:.
+│
+├─archive
+├─docs
+│  ├─01_project_plan
+│  ├─02_requirements
+│  ├─03_mid_design
+│  ├─04_final_report
+│  ├─05_weekly_report
+│  └─meeting_logs
+└─src
+    └─app
+        │  __init__.py
+        ├─static
+        │  ├─css
+        │  │      style.css
+        │  └─js
+        │          main.js
+        └─templates
+                hello.html
 ```
 
 ---
