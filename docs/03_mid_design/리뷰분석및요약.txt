@@ -1,0 +1,19 @@
+sequenceDiagram
+    participant Facade as 퍼사드
+    participant AI_Analyzer as AI 분석
+    actor AI_API as "AI API (외부 시스템)"
+
+    Facade->>AI_Analyzer: 1. 분석/요약 요청 (텍스트, Keywords)
+    note over AI_Analyzer: API 요청용 프롬프트 생성
+    
+    AI_Analyzer->>AI_API: 2. API 요청 (프롬프트)
+
+    alt API 호출 성공
+        AI_API-->>AI_Analyzer: 3. API 응답
+        note over AI_Analyzer: 응답 결과 처리
+        AI_Analyzer-->>Facade: 4. 분석/요약 결과 반환
+
+    else API 호출 실패
+        AI_API-->>AI_Analyzer: 3a. API 오류 응답
+        AI_Analyzer-->>Facade: 4a. 분석 실패 응답
+    end
