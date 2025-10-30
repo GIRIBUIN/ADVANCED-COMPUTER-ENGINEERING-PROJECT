@@ -1,0 +1,27 @@
+sequenceDiagram
+    actor User_Registered as 로그인한 사용자
+    participant Web_Server as 웹 서버
+    participant Auth_Module as 사용자 인증 모듈
+    participant Facade as 퍼사드
+    participant Persistence as 데이터베이스(라이브러리)
+
+    User_Registered->>Web_Server: 1. 라이브러리 접근 요청
+    note right of User_Registered: '라이브러리 조회' 선택 시에만
+
+    Web_Server->>Auth_Module: 2. 사용자 세션 유효성 검증
+    
+    alt 세션이 유효한 경우
+        Auth_Module-->>Web_Server: 3. 검증 완료 (사용자 ID 반환)
+        Web_Server->>Facade: 4. 저장 목록 조회 요청 (사용자 ID)
+        Facade->>Persistence: 5. 해당 사용자의 저장된 분석 결과 목록 조회
+       
+        Persistence-->>Facade: 6. 분석 결과 목록 반환
+ 
+
+        Facade-->>Web_Server: 7. 조회된 목록 전달
+        Web_Server-->>User_Registered: 8. 저장된 분석 결과 목록 페이지 출력
+
+    else 세션이 유효하지 않은 경우
+        Auth_Module-->>Web_Server: 3a. 검증 실패 (인증 오류)
+        Web_Server-->>User_Registered: 8a. 로그인 페이지로 리디렉션
+    end
