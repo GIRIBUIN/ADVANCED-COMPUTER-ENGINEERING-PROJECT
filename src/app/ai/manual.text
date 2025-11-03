@@ -10,3 +10,9 @@ pip install dotenv
 .env
 https://aistudio.google.com/app/api-keys
 GOOGLE_API_KEY=your_api_key_here
+
+
+코드 실행 환경(run code)
+1. cmd + , : 설정 열기
+2. code-runner.executorMap 검색
+3. settings.json 파일의 python의 경로 수정 (which python3의 결과인 가상환경 절대경로)
