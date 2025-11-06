@@ -13,7 +13,7 @@ from selenium.webdriver.common.action_chains import ActionChains
 
 # --- 1. 설정 (사용자 입력) ---
 # 스크래핑할 쿠팡 상품 URL
-TARGET_URL = "https://www.coupang.com/vp/products/7674683011?itemId=20482813182&vendorItemId=87561388032&sourceType=SDP_ALSO_VIEWED&searchId=d06a0c5c0b1143a58b297920302821b0&rmdId=d06a0c5c0b1143a58b297920302821b0&eventLabel=AF&platform=PC&selectionId=100000038162&withoutPrice=true&customPriceRange=false&searchKey=product&includeAllHost=true&excludeMajorHost=false"
+TARGET_URL = "https://www.coupang.com/vp/products/8070703179?itemId=22947201334&searchId=edfbc22f87a248dea8450fa5967312bc&sourceType=brandstore_display_ads-carousel&storeId=192848&subSourceType=brandstore_display_ads-carousel&vendorId=A00012012&vendorItemId=90113908086"
 
 # 로테이팅 프록시 목록 (인증 정보 포함)
 # 형식: "http://사용자이름:비밀번호@프록시주소:포트"
@@ -73,7 +73,8 @@ def initialize_driver():
     driver = uc.Chrome(
         options=options,
         seleniumwire_options=seleniumwire_options,
-        use_subprocess=True # 메모리 관리 및 안정성 향상
+        use_subprocess=True,# 메모리 관리 및 안정성 향상
+        version_main=141
     )
     driver.set_page_load_timeout(60) # 페이지 로드 타임아웃 설정
     return driver
