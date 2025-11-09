@@ -18,3 +18,6 @@ src/reviews_data/
 *.log
 # mysql
 mysql_data/
+
+# db
+config.py
