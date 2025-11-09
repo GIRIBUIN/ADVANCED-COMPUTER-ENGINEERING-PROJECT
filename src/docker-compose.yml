@@ -6,14 +6,15 @@ services:
     ports:
       - "5000:5000"
     volumes:
-      - ./app:/app/app
+      - ./app:/app
     # db 서비스가 시작된 후에 실행되도록 의존성을 설정
     depends_on:
       - db
-    # Flask 앱 실행에 필요한 환경변수
-    # environment:
-    #   - FLASK_APP=app
-    #   - FLASK_DEBUG=1 # 개발 중에는 디버그 모드를 켜면 편리합니다.
+
+    environment:
+      - MYSQL_USER=user
+      - MYSQL_PASSWORD=password123!
+      - MYSQL_DATABASE=review_analyzer_db
 
   db:
     image: mysql:8.0
@@ -22,10 +23,11 @@ services:
     ports:
       - "3307:3306"
     volumes:
-      - ./mysql_data:/var/lib/mysql
+      - ../mysql_data:/var/lib/mysql
+      - ./app/db:/docker-entrypoint-initdb.d
     environment:
       MYSQL_ROOT_HOST: '%'
       MYSQL_ROOT_PASSWORD: konkuk123!
-      MYSQL_DATABASE: ReviewAnalyzer_DB
+      MYSQL_DATABASE: review_analyzer_db
       MYSQL_USER: user
-      MYSQL_PASSWORD: password
+      MYSQL_PASSWORD: password123!
