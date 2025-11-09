@@ -14,14 +14,13 @@ def setup_driver():
     options = uc.ChromeOptions()
     options.add_argument("--disable-blink-features=AutomationControlled")
     options.add_argument("--start-maximized")
-    # [중요] 사용자 환경에 맞춰 크롬 버전 고정 (에러 발생 시 수정 필요)
+    # [중요] 사용자 환경에 맞춰 크롬 버전 고정
     driver = uc.Chrome(options=options, version_main=141)
     return driver
 
 def extract_reviews(driver):
     """현재 페이지에 로드된 리뷰들을 추출"""
     reviews_data = []
-    # '도움이 돼요' 섹션이 있는 리뷰 article만 정확히 타겟팅
     articles = driver.find_elements(By.XPATH, "//article[.//div[contains(@class, 'sdp-review__article__list__help')]]")
     
     for article in articles:
@@ -49,6 +48,8 @@ def extract_reviews(driver):
 def scrape_coupang(url):
     driver = None
     all_reviews = []
+    visited_pages = set() # [V7 추가] 방문한 페이지 번호를 기억하는 집합
+
     try:
         driver = setup_driver()
         wait = WebDriverWait(driver, 15)
@@ -58,112 +59,109 @@ def scrape_coupang(url):
         # 1. '상품평' 탭 클릭
         review_tab = wait.until(EC.element_to_be_clickable((By.XPATH, "//a[contains(text(),'상품평')]")))
         ActionChains(driver).move_to_element(review_tab).click().perform()
-        
-        # 리뷰 섹션이 확실히 로드될 때까지 대기
         wait.until(EC.presence_of_element_located((By.ID, "sdpReview")))
         print("[이동] 상품평 탭 진입 성공")
-        time.sleep(2) # 초기 로딩 안정화
+        time.sleep(2)
 
-        while True: # [메인 루프] 10페이지 단위 그룹 반복
+        while True: # [메인 루프] 페이지 그룹 반복
             
-            # 2. 현재 페이지 수집
-            current_reviews = extract_reviews(driver)
-            all_reviews.extend(current_reviews)
-            print(f"[수집] 페이지 완료 (누적 {len(all_reviews)}개)")
-
-            # 3. 그룹 내 나머지 숫자 페이지 순차 클릭
+            # [V7 핵심 변경] 현재 그룹 내에서 방문 안 한 페이지 순차 탐색
             while True:
                 try:
-                    # 페이지네이션 바 찾기 (data-start 속성이 있는 div)
                     pagination = wait.until(EC.presence_of_element_located((By.XPATH, "//div[@data-start and @data-end]")))
                     
-                    # 현재 활성화된 페이지 번호 찾기 (파란색 글씨)
+                    # 2-1. 현재 페이지 번호 확인 및 수집
                     current_btn = pagination.find_element(By.XPATH, ".//button[contains(@class, 'twc-text-[#346aff]') and contains(@class, 'twc-font-bold')]")
                     current_page_num = int(current_btn.text.strip())
 
-                    # 현재 번호보다 큰 숫자 버튼들 찾기
-                    next_num_btn = None
-                    # span 안에 텍스트(숫자)가 있는 버튼만 필터링
-                    num_btns = pagination.find_elements(By.XPATH, ".//button[./span[string-length(text()) > 0]]")
-                    for btn in num_btns:
-                        if int(btn.text.strip()) > current_page_num:
-                            next_num_btn = btn
-                            break 
+                    if current_page_num not in visited_pages:
+                        print(f"[수집] {current_page_num} 페이지 수집 시작...")
+                        current_reviews = extract_reviews(driver)
+                        all_reviews.extend(current_reviews)
+                        visited_pages.add(current_page_num)
+                        print(f"       -> {len(current_reviews)}개 완료 (누적 {len(all_reviews)}개)")
 
-                    if next_num_btn:
-                        target_page = next_num_btn.text.strip()
-                        print(f"[이동] {target_page} 페이지로 이동...")
+                    # 2-2. 현재 그룹에서 '아직 방문하지 않은' 가장 작은 페이지 번호 찾기
+                    num_btns = pagination.find_elements(By.XPATH, ".//button[./span[string-length(text()) > 0]]")
+                    next_target_btn = None
+                    min_unvisited_page = float('inf')
+
+                    for btn in num_btns:
+                        page_num = int(btn.text.strip())
+                        if page_num not in visited_pages:
+                            # 방문 안 한 페이지 중 가장 작은 페이지를 우선 타겟으로 설정
+                            if page_num < min_unvisited_page:
+                                min_unvisited_page = page_num
+                                next_target_btn = btn
+                    
+                    # 2-3. 타겟 페이지가 있으면 이동
+                    if next_target_btn:
+                        target_page = next_target_btn.text.strip()
+                        print(f"[이동] {target_page} 페이지로 이동... (현재: {current_page_num}페이지)")
                         
-                        # 스크롤 및 클릭
-                        driver.execute_script("arguments[0].scrollIntoView({block: 'center'});", next_num_btn)
+                        driver.execute_script("arguments[0].scrollIntoView({block: 'center'});", next_target_btn)
                         time.sleep(0.5)
-                        driver.execute_script("arguments[0].click();", next_num_btn)
+                        driver.execute_script("arguments[0].click();", next_target_btn)
                         
-                        # 로딩 대기 (중요: DOM 변경 감지)
                         try:
-                            # 이전 페이지의 첫 번째 리뷰가 사라질 때까지 대기 (Staleness)
                             old_review = driver.find_element(By.XPATH, "(//article[.//div[contains(@class, 'sdp-review__article__list__help')]])[1]")
                             wait.until(EC.staleness_of(old_review))
                         except:
-                            time.sleep(2) # 요소를 못 찾으면 안전하게 시간 대기
-
-                        # 이동 후 리뷰 수집
-                        new_reviews = extract_reviews(driver)
-                        all_reviews.extend(new_reviews)
-                        print(f"       -> {len(new_reviews)}개 추가 수집")
+                            time.sleep(2.5)
                     else:
-                        print("[그룹 완료] 현재 그룹 페이지 수집 끝. 다음 그룹 버튼을 찾습니다.")
+                        # 현재 그룹의 모든 페이지를 방문했으면 내부 루프 종료
+                        print(f"[그룹 완료] 현재 보이는 모든 페이지({min(visited_pages, default=0)}~{max(visited_pages, default=0)}) 수집 끝.")
                         break 
 
                 except Exception as e:
-                    print(f"[일시적 오류] 페이지 이동 재시도... ({str(e)[:30]})")
+                    # print(f"[일시적 오류] 재시도 중... ({str(e)[:50]})")
                     time.sleep(1)
                     continue
 
-            # 4. 다음 그룹(>) 이동 버튼 클릭 (V5 핵심 수정)
+            # 4. 다음 그룹(>) 이동 버튼 클릭
             try:
-                # [V5 수정] 가장 단순하고 강력한 방법: 페이지네이션 바의 '마지막 자식 버튼'을 선택
+                current_pagination = driver.find_element(By.XPATH, "//div[@data-start]")
+                current_start_val = current_pagination.get_attribute("data-start")
+
+                # '>' 버튼 찾기 (마지막 자식 버튼)
                 next_group_btn = driver.find_element(By.XPATH, "//div[@data-start and @data-end]/button[last()]")
                 
-                # 버튼이 활성화 상태인지 확인 (disabled 속성이 없어야 함)
                 if next_group_btn.is_enabled() and next_group_btn.get_attribute("disabled") is None:
-                    print("[그룹 이동] '>' 버튼 클릭 시도...")
+                    print(f"[그룹 이동] '>' 버튼 클릭!")
                     driver.execute_script("arguments[0].scrollIntoView({block: 'center'});", next_group_btn)
                     time.sleep(1)
                     driver.execute_script("arguments[0].click();", next_group_btn)
                     
-                    # 그룹 이동은 로딩이 오래 걸리므로 넉넉히 대기
-                    time.sleep(4)
-                    
-                    # 새 그룹이 로드되었는지 검증 (예: 11페이지가 보이는지)
-                    wait.until(EC.presence_of_element_located((By.XPATH, "//div[@data-start and @data-end]")))
-                    print("[그룹 이동] 성공! 다음 그룹 로드 완료.")
+                    print("[대기] 새 그룹 로딩 중...")
+                    # data-start 값이 바뀔 때까지 대기 (그룹 이동 확인)
+                    wait.until(lambda d: d.find_element(By.XPATH, "//div[@data-start]").get_attribute("data-start") != current_start_val)
+                    time.sleep(2)
+                    print("[성공] 새 페이지 그룹 로드 완료!")
                 else:
-                    print("[전체 완료] '>' 버튼이 비활성화되었습니다. (더 이상 리뷰 없음)")
+                    print("[전체 완료] 더 이상 이동할 다음 그룹이 없습니다.")
                     break
 
             except (NoSuchElementException, TimeoutException):
-                print("[전체 완료] 다음 그룹(>) 버튼을 찾을 수 없습니다. 스크래핑을 종료합니다.")
+                print("[전체 완료] '>' 버튼을 찾을 수 없습니다. 스크래핑을 종료합니다.")
                 break
 
     except Exception as e:
-        print(f"\n[치명적 오류] {e}")
+        print(f"\n[오류 발생] {e}")
         traceback.print_exc()
     finally:
         if driver:
-            print(f"\n[종료] 브라우저를 닫습니다. 총 {len(all_reviews)}개 리뷰 수집됨.")
+            print(f"\n[종료] 총 {len(all_reviews)}개의 리뷰가 수집되었습니다.")
             try: driver.quit()
-            except: pass # 종료 시 발생하는 핸들 에러 무시
+            except: pass
     
     return all_reviews
 
 if __name__ == "__main__":
-    # 테스트할 URL
     target_url = "https://www.coupang.com/vp/products/7224339339?vendorItemId=3051369121&sourceType=SDP_ALSO_VIEWED"
     
     reviews = scrape_coupang(target_url)
     if reviews:
         df = pd.DataFrame(reviews)
-        file_name = "coupang_reviews_final_v5.xlsx"
+        file_name = "coupang_reviews_final_v7.xlsx"
         df.to_excel(file_name, index=False)
         print(f"[저장 완료] '{file_name}' 파일에 저장되었습니다.")
