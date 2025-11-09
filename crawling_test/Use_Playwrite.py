@@ -21,8 +21,8 @@ def scrape_coupang_reviews(url):
         options = uc.ChromeOptions()
         options.add_argument("--disable-blink-features=AutomationControlled")
         options.add_argument("--start-maximized")
-        
-        driver = uc.Chrome(options=options)
+
+        driver = uc.Chrome(options=options, version_main=141)
         print("[로그] Chrome 드라이버가 성공적으로 시작되었습니다.")
         
         driver.get(url)
@@ -138,7 +138,7 @@ def scrape_coupang_reviews(url):
     return reviews_data
 
 if __name__ == "__main__":
-    target_url = "https://www.coupang.com/vp/products/21897769?itemId=85383568&vendorItemId=3145055735"
+    target_url = "https://www.coupang.com/vp/products/8070703179?itemId=22947201334&searchId=edfbc22f87a248dea8450fa5967312bc&sourceType=brandstore_display_ads-carousel&storeId=192848&subSourceType=brandstore_display_ads-carousel&vendorId=A00012012&vendorItemId=90113908086"
     
     scraped_reviews = scrape_coupang_reviews(target_url)
 
