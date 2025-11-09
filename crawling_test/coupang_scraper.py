@@ -11,6 +11,8 @@ from selenium.webdriver.support import expected_conditions as EC
 from selenium.common.exceptions import NoSuchElementException, TimeoutException, WebDriverException
 from selenium.webdriver.common.action_chains import ActionChains
 
+#이거 제대로 동작 안함
+
 # --- 1. 설정 (사용자 입력) ---
 # 스크래핑할 쿠팡 상품 URL
 TARGET_URL = "https://www.coupang.com/vp/products/8070703179?itemId=22947201334&searchId=edfbc22f87a248dea8450fa5967312bc&sourceType=brandstore_display_ads-carousel&storeId=192848&subSourceType=brandstore_display_ads-carousel&vendorId=A00012012&vendorItemId=90113908086"
