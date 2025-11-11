@@ -29,3 +29,21 @@ def init_app(app):
     app.teardown_appcontext(close_db)
 
 # --- CRUD 함수 ---
+
+def add_user(user_name):
+    """ 회원가입 : 닉네임으로 user 추가 """
+    db = get_db()
+    cursor = db.cursor()
+    sql = "INSERT INTO USERS (username) VALUES (%s)"
+    cursor.execute(sql, (user_name,))
+    db.commit()
+
+def find_user_by_name(user_name):
+    """ 로그인 : 닉네임으로 user 찾기 """
+    db = get_db()
+    cursor = db.cursor()
+    sql = "SELECT * FROM USERS WHERE username = %s"
+    cursor.execute(sql,(user_name,))
+    user = cursor.fetchone()
+    return user
+
