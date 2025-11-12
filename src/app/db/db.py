@@ -34,7 +34,7 @@ def add_user(user_name):
     """ 회원가입 : 닉네임으로 user 추가 """
     db = get_db()
     cursor = db.cursor()
-    sql = "INSERT INTO USERS (username) VALUES (%s)"
+    sql = "INSERT INTO USERS (user_name) VALUES (%s)"
     cursor.execute(sql, (user_name,))
     db.commit()
 
@@ -42,8 +42,17 @@ def find_user_by_name(user_name):
     """ 로그인 : 닉네임으로 user 찾기 """
     db = get_db()
     cursor = db.cursor()
-    sql = "SELECT * FROM USERS WHERE username = %s"
+    sql = "SELECT * FROM USERS WHERE user_name = %s"
     cursor.execute(sql,(user_name,))
+    user = cursor.fetchone()
+    return user
+
+def find_user_by_id(user_id):
+    """로그인 : id로 user 찾기"""
+    db = get_db()
+    cursor = db.cursor()
+    sql = "SELECT * FROM USERS WHERE user_id = %d"
+    cursor.execute(sql,(user_id,))
     user = cursor.fetchone()
     return user
 
