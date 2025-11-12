@@ -5,7 +5,7 @@ USE review_analyzer_db;
 -- 1. Users Table
 CREATE TABLE USERS(
     user_id INT AUTO_INCREMENT PRIMARY KEY COMMENT '사용자 고유 ID. 가입자 수 체크',
-    username VARCHAR(255) NOT NULL UNIQUE COMMENT '사용자 닉네임. 중복 불가',
+    user_name VARCHAR(255) NOT NULL UNIQUE COMMENT '사용자 닉네임. 중복 불가',
     created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP COMMENT '가입 일'
 ) COMMENT='사용자 정보 테이블';
 
