@@ -1,103 +1,155 @@
-import os
-import sys
-import json
-from flask import Flask, render_template, request, jsonify
+from flask import Flask, request, jsonify, render_template
 import pandas as pd
-import random
-import time
+import importlib.util
+import json
+from pathlib import Path
+import sys 
+from jinja2.exceptions import TemplateNotFound
 
-# --- 경로 설정 ---
-# src/app/ai와 src/app/crawling 디렉토리를 Python 경로에 추가
-sys.path.append(os.path.join(os.path.dirname(__file__), 'ai'))
-sys.path.append(os.path.join(os.path.dirname(__file__), 'crawling'))
+# --- 모듈 로딩 및 경로 설정 ---
+# app.py가 위치한 디렉토리의 절대 경로
+BASE_DIR = Path(__file__).parent
+# 가능한 모듈 검색 경로 목록을 정의
+SEARCH_PATHS = [
+    BASE_DIR,                       # 1. /src/app/ 
+    BASE_DIR / "crawling",          # 2. /src/app/crawling/ 
+    BASE_DIR.parent,                # 3. /src/
+    BASE_DIR / "ai",
+]
 
-# 모델 파일 임포트 (파일 이름은 대문자로 시작하므로, import 시 주의)
-# 실제 Python에서는 'Crapping_module_ver1.py'를 'Crapping_module_ver1'로 임포트
+# Python이 내부 모듈 import (analyzer가 chatbot을 import)를 찾을 수 있도록 
+# 모든 검색 경로를 sys.path에 추가
+for path in SEARCH_PATHS:
+    if str(path) not in sys.path:
+        sys.path.insert(0, str(path))
+
+def load_module_from_path(module_name):
+    """지정된 모듈 이름으로 파일 시스템에서 모듈을 찾고 로드함."""
+    
+    found_path = None
+    
+    for path in SEARCH_PATHS:
+        file_path = path / f"{module_name}.py"
+        if file_path.exists():
+            found_path = file_path
+            break
+
+    if not found_path:
+        # 오류 메시지에 검색한 모든 경로를 포함하여 사용자가 파일 위치를 확인하도록 도움.
+        checked_dirs = [str(p.resolve()) for p in SEARCH_PATHS]
+        error_msg = f"모듈 파일 '{module_name}.py'를 다음 위치들 중 어디에서도 찾을 수 없습니다: \n" + "\n".join(checked_dirs)
+        raise FileNotFoundError(error_msg)
+             
+    print(f"모듈 로드 성공: {found_path.resolve()}")
+    
+    # 명시적으로 절대 경로를 사용하여 모듈 로드
+    spec = importlib.util.spec_from_file_location(module_name, found_path.resolve())
+    if spec is None:
+        raise ImportError(f"모듈 {module_name}의 스펙을 찾을 수 없습니다.")
+        
+    module = importlib.util.module_from_spec(spec)
+    spec.loader.exec_module(module)
+    return module
+
 try:
-    from Crapping_module_ver1 import scrape_reviews_and_save  # 아래에서 함수명 변경 예정
-    from analyzer import ReviewAnalasys
-except ImportError as e:
-    print(f"[ERROR] 모델 파일을 임포트할 수 없습니다: {e}")
-    sys.exit(1)
+    # 필요한 모듈 로드
+    crap_module = load_module_from_path("Crapping_module_ver1")
+    anal_module = load_module_from_path("analyzer")
+    
+except FileNotFoundError as e:
+    print(f"오류: 프로젝트 파일을 찾을 수 없습니다. {e}")
+    # 파일 위치를 확인하거나, load_module_from_path 함수의 경로 설정을 확인 필요.
+    raise
 
-
-app = Flask(__name__,
-            static_folder='../static',
-            template_folder='../templates')
-
-# --- 설정 (크롤링 파일 경로) ---
-# 크롤링 결과 Excel 파일의 임시 저장 경로
-# 'src/app/crawling' 폴더에 저장
-CRAWL_FILE_PATH = os.path.join(os.path.dirname(__file__), 'crawling', 'coupang_reviews_web_temp.xlsx')
-
+# --- Flask 앱 및 라우팅 ---
+# hello.html, main.js, style.css를 같은 폴더에서 서빙하기 위해 설정
+app = Flask(
+    __name__, 
+    template_folder=BASE_DIR / 'templates',           
+    static_url_path='/static',
+    static_folder=BASE_DIR / 'static' 
+)
 
 @app.route('/')
-def index():
-    """초기 HTML 템플릿 렌더링"""
-    # hello.html은 src/templates에 있다고 가정
-    return render_template('hello.html')
+def index():    # 추후에 명확한 하나의 path로 단축 고려.
+    try:
+        # 1. /src/app/templates/hello.html 시도
+        return render_template('hello.html')
+    except TemplateNotFound:
+        # 2. /src/app/templates/html/hello.html 등 서브 폴더를 가정하고 시도
+        try:
+            return render_template('html/hello.html')
+        except TemplateNotFound:
+            # 3. /src/app/templates/pages/hello.html 등 다른 서브 폴더를 가정하고 시도
+            try:
+                return render_template('pages/hello.html')
+            except TemplateNotFound as e:
+                # 모든 시도가 실패하면 오류를 다시 발생시켜 디버깅을 도움.
+                print("템플릿 경로 확인 실패: 'hello.html' 파일을 찾지 못했습니다.")
+                print(f"검색된 폴더: {app.template_folder.resolve()}")
+                print("혹시 파일 이름에 오타는 없는지, 또는 'template' 폴더 내에 'html' 또는 'pages' 등의 추가 서브 폴더가 있는지 확인해주세요.")
+                raise e # TemplateNotFound 예외를 다시 발생.
 
 @app.route('/api/analyze', methods=['POST'])
-def analyze_review_api():
-    """
-    핵심 리뷰 분석 API
-    1. 크롤링 (Crapping_module_ver1.py)
-    2. 전처리 (readData.py 로직)
-    3. AI 분석 (analyzer.py)
-    """
+def analyze_reviews():
     data = request.get_json()
     link = data.get('link')
-    keyword = data.get('keyword', '용량, 배터리, 디자인') # 키워드가 없으면 기본값 사용
+    keyword = data.get('keyword')
 
-    if not link:
-        return jsonify({"success": False, "message": "링크를 입력해주세요."}), 400
+    if not link or not keyword:
+        return jsonify({"message": "링크와 키워드를 모두 제공해야 합니다."}), 400
 
     try:
-        # --- 1. 크롤링 (Crapping_module_ver1.py 실행) ---
-        # Crapping_module_ver1.py의 메인 로직을 함수화하여 호출
-        # (아래 2. 파일 수정 지침 참조)
-        all_reviews = scrape_reviews_and_save(link, CRAWL_FILE_PATH) 
-        
-        if not all_reviews:
-            return jsonify({"success": False, "message": "크롤링에 실패했거나 리뷰가 없습니다."}), 500
+        # 1. 크롤링 모듈 실행
+        all_results = []
+        # 'crap_module.TARGET_RATINGS'가 있는지 확인하고 없으면 기본값 설정
+        target_ratings = getattr(crap_module, 'TARGET_RATINGS', [5, 4, 3, 2, 1]) 
 
-        # --- 2. 전처리 (readData.py 로직 통합) ---
-        # 크롤링된 데이터를 바로 전처리
-        df = pd.DataFrame(all_reviews)
-        clean_df = df.dropna(subset=['내용'])
-        string_data = clean_df['내용'].to_string(index=False, header=False, index_names=False)
-        lines = string_data.strip().split('\n')
-        final_string = ' '.join([line.strip() for line in lines])
+        for rating in target_ratings:
+            # scrape_single_rating 함수가 존재하는지 확인
+            if hasattr(crap_module, 'scrape_single_rating'):
+                rating_reviews = crap_module.scrape_single_rating(link, rating)
+                all_results.extend(rating_reviews)
+            else:
+                return jsonify({"message": "크롤링 모듈(Crapping_module_ver1.py)에서 'scrape_single_rating' 함수를 찾을 수 없습니다."}), 500
+
+        if not all_results:
+            return jsonify({"message": "제공된 링크에서 리뷰를 수집할 수 없었습니다."}), 500
+
+        # 2. 데이터 전처리 및 리뷰 문자열 생성
+        temp_df = pd.DataFrame(all_results)
+        clean_df = temp_df.dropna(subset=['내용']) 
+        review_string = clean_df.to_string(index=False, header=False, index_names=False)   
+        lines = review_string.strip().split('\n')
+        review_string = ' '.join([line.strip() for line in lines])
         
-        if not final_string:
-            return jsonify({"success": False, "message": "리뷰 데이터 전처리 결과, 분석 가능한 내용이 없습니다."}), 500
+        # 3. AI 분석 모듈 실행 (수정된 analyzer.py의 함수 호출 필요)
+        anal_module.chatbot.reset()
+        # analyzer.py에 추가할 analyze_reviews 함수를 호출.
+        ai_response = anal_module.analyze_reviews(keyword, review_string)
         
-        # --- 3. AI 분석 (analyzer.py 실행) ---
-        # analyzer.py의 ReviewAnalasys 함수를 호출하며, 필요한 인수를 전달하도록 수정 필요
-        # (아래 2. 파일 수정 지침 참조)
-        # analyzer.py 내부에서 final_string을 전역 변수로 가져오는 대신, 인수로 전달해야 웹 환경에서 동적으로 동작
-        
-        # 임시로 JSON 문자열 반환을 가정
-        json_response_str = ReviewAnalasys(keyword, final_string)
-        
-        # AI 응답이 JSON 형식이 아닐 경우 오류 처리 (필수)
+        # 4. JSON 파싱
         try:
-            analysis_result = json.loads(json_response_str)
+            start_index = ai_response.find('{')
+            end_index = ai_response.rfind('}')
+            json_string = ai_response[start_index:end_index+1].strip()
+            result_json = json.loads(json_string)
         except json.JSONDecodeError:
-            print(f"[AI ERROR] JSON 파싱 실패: {json_response_str}")
-            return jsonify({"success": False, "message": "AI 분석 결과 형식이 올바르지 않습니다."}), 500
-        
-        # --- 4. 결과 반환 ---
+            return jsonify({
+                "message": "AI 응답 형식이 올바르지 않습니다. AI가 JSON이 아닌 텍스트를 반환했을 수 있습니다.",
+                "raw_response": ai_response,
+                "keyword": keyword
+            }), 500
+
         return jsonify({
-            "success": True,
-            "keyword": keyword,
-            "result_json": analysis_result # 파싱된 JSON 객체 반환
+            "result_json": result_json,
+            "keyword": keyword
         })
 
     except Exception as e:
-        print(f"서버 처리 중 오류 발생: {e}")
-        return jsonify({"success": False, "message": f"서버 처리 오류: {str(e)}"}), 500
+        import traceback
+        traceback.print_exc() # 서버 로그에 상세 오류 출력
+        return jsonify({"message": f"서버 처리 중 오류가 발생했습니다: {str(e)}"}), 500
 
 if __name__ == '__main__':
-    # Flask 서버 실행
     app.run(debug=True)

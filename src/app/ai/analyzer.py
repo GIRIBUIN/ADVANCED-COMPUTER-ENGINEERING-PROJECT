@@ -1,5 +1,5 @@
 from chatbot import ChatBot
-from readData import final_string
+# from readData import final_string
 
 # system_message, ai에 프롬프트에 키워드와 리뷰 데이터 어떻게 넣을지 고민
 system_message = """
@@ -34,13 +34,26 @@ system_message = """
 # 챗봇 생성 (모델 이름은 Gemini 계열로 지정)
 chatbot = ChatBot("gemini-2.0-flash", system_message)
 
-# 리뷰 분석 및 정리
-def ReviewAnalasys():
-    keywords = "맛, 포장, 배송, 가성비"
-    # review_data = "이번 제품은 화이트 노이즈가 심합니다.불량이 아닌가 의심되는데...뽑기운이 안좋은 것이였으면 좋겠네요.새 제품으로 교환했으면 합니다.소비자원에서 좋다고 해서 믿고 샀는데, 음질도 그냥 그렇고, 노캔은 안 좋아요 음질이 조금 아쉽기는 하지만 쓰는데는 큰 문제는 없어요 음질이랑 노캔은 그럭저럭인데 생긴게 이쁘고 고급스러워서 좋아요 배터리도 엄청 오래가요 사고나서 한번도 충전 안했는데 아직도 90퍼네요ㅋㅋ"
+def analyze_reviews(keyword, review_data):
+    """
+    주어진 키워드와 리뷰 데이터를 사용하여 분석을 요청하고 AI 응답을 반환합니다.
+    """
+    # 챗봇 상태 초기화 (선택적)
+    chatbot.reset() 
+    
+    # 리뷰 데이터를 인자로 받아 프롬프트를 구성합니다.
+    prompt = f"keyword: {keyword}\nreview data: {review_data}"
+    
+    ai_response = chatbot.get_response(user_input=prompt)
+    return ai_response
 
-    response = chatbot.get_response("keyword: "+ keywords + "\nreview data: " + final_string)
-    return response
+# 리뷰 분석 및 정리
+# def ReviewAnalasys():
+#     keywords = "맛, 포장, 배송, 가성비"
+#     # review_data = "이번 제품은 화이트 노이즈가 심합니다.불량이 아닌가 의심되는데...뽑기운이 안좋은 것이였으면 좋겠네요.새 제품으로 교환했으면 합니다.소비자원에서 좋다고 해서 믿고 샀는데, 음질도 그냥 그렇고, 노캔은 안 좋아요 음질이 조금 아쉽기는 하지만 쓰는데는 큰 문제는 없어요 음질이랑 노캔은 그럭저럭인데 생긴게 이쁘고 고급스러워서 좋아요 배터리도 엄청 오래가요 사고나서 한번도 충전 안했는데 아직도 90퍼네요ㅋㅋ"
+
+#     response = chatbot.get_response("keyword: "+ keywords + "\nreview data: " + final_string)
+#     return response
 
 
 # 출력 테스트

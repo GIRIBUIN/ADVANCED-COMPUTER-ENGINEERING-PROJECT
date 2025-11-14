@@ -10,6 +10,7 @@
 <body>
 
     <div class="container">
+        <!-- 상단 헤더 -->
         <header class="header">
             <div class="header-left">
                 <i class="fa-solid fa-bars"></i>
@@ -29,23 +30,26 @@
             </div>
         </header>
 
+        <!-- 대화 영역 -->
         <main class="chat-area">
-
+            <!-- 메시지는 JavaScript에 의해 동적으로 추가됩니다 -->
         </main>
 
+        <!-- 하단 입력창 -->
         <footer class="input-area">
-            <input type="text" placeholder="제품 링크를 입력하거나 질문을 해보세요..." class="text-input">
+            <input type="text" id="text-input" placeholder="제품 링크를 입력하거나 질문을 해보세요..." class="text-input">
             <div class="input-right-group">
                 <i class="fa-solid fa-folder-open icon-left"></i>
                 <div class="tip-box">
-                    <p>Tip: 제품 링크를 입력하면 키워드 입력창이 나타납니다</p>
+                    <p id="tip-text">Tip: 제품 링크를 입력하고 전송하세요.</p>
                 </div>
-                <button class="send-button">
+                <button class="send-button" id="send-button">
                     <i class="fa-solid fa-play"></i>
                 </button>
             </div>
         </footer>
     </div>
+
     <script src="../static/js/main.js"></script>
 </body>
 </html>
