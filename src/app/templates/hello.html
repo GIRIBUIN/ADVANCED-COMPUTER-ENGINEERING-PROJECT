@@ -2,67 +2,50 @@
 <html lang="ko">
 <head>
     <meta charset="UTF-8">
-    <meta name="" content="">
-    <title>Keyword-Based Review Analyzer</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>제품 리뷰 분석기</title>
     <link rel="stylesheet" href="../static/css/style.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
 </head>
 <body>
+
     <div class="container">
-        <header class="top-section">
-            <h1 class="main-title">Keyword-Based Review Analysis</h1>
-            <p class="description">Enter specific keywords and product URLs to get targeted AI analysis focused on what matters most to you</p>
+        <header class="header">
+            <div class="header-left">
+                <i class="fa-solid fa-bars"></i>
+                <span class="header-title">라이브러리</span>
+            </div>
+            <div class="header-center">
+                <span class="main-title">제품 리뷰 분석기</span>
+                <i class="fa-solid fa-magnifying-glass search-icon"></i>
+            </div>
+            <div class="header-right">
+                <i class="fa-regular fa-clone"></i>
+                <i class="fa-regular fa-window-minimize"></i>
+                <i class="fa-solid fa-xmark"></i>
+                <div class="user-menu">
+                    <i class="fa-solid fa-ellipsis-vertical"></i>
+                </div>
+            </div>
         </header>
 
-        <main class="bottom-section">
-            <div class="keyword-input-container">
-                <label for="keywords" class="input-label">Target Keywords <span class="sub-text">(comma-separated)</span></label>
-                <input type="text" id="keywords" class="text-input" placeholder="e.g., quality, durability, customer service, shipping, value for money">
-                <p class="placeholder-text">Leave empty to auto-detect keywords, or specify keywords you want to focus on</p>
-            </div>
+        <main class="chat-area">
 
-            <div class="two-column-layout">
-                <div class="left-column">
-                    <div class="url-analysis-container">
-                        <label for="product-url" class="input-label">Product URL</label>
-                        <input type="text" id="product-url" class="text-input" placeholder="https://www.amazon.com/product-name/dp/...">
-                    </div>
-                    
-                    <div class="analysis-feature-box url-box">
-                        <span class="icon-placeholder"></span>
-                        <div class="text-group">
-                            <h3>URL Analysis</h3>
-                            <p>We'll automatically scrape and analyze reviews from the provided product URL. Supported platforms include Amazon, eBay, and other major e-commerce sites.</p>
-                        </div>
-                    </div>
-                    
-                    <button class="analyze-button">Analyze URL</button>
-                </div>
-                
-                <div class="right-column">
-                    <div class="analysis-feature-box">
-                        <span class="icon-placeholder"></span>
-                        <div class="text-group">
-                            <h3>Keyword Targeting</h3>
-                            <p>Focus analysis on specific topics</p>
-                        </div>
-                    </div>
-                    <div class="analysis-feature-box">
-                        <span class="icon-placeholder"></span>
-                        <div class="text-group">
-                            <h3>Smart Summarization</h3>
-                            <p>AI insights per keyword</p>
-                        </div>
-                    </div>
-                    <div class="analysis-feature-box">
-                        <span class="icon-placeholder"></span>
-                        <div class="text-group">
-                            <h3>URL Scraping</h3>
-                            <p>Direct product page analysis</p>
-                        </div>
-                    </div>
-                </div>
-            </div>
         </main>
+
+        <footer class="input-area">
+            <input type="text" placeholder="제품 링크를 입력하거나 질문을 해보세요..." class="text-input">
+            <div class="input-right-group">
+                <i class="fa-solid fa-folder-open icon-left"></i>
+                <div class="tip-box">
+                    <p>Tip: 제품 링크를 입력하면 키워드 입력창이 나타납니다</p>
+                </div>
+                <button class="send-button">
+                    <i class="fa-solid fa-play"></i>
+                </button>
+            </div>
+        </footer>
     </div>
+    <script src="../static/js/main.js"></script>
 </body>
 </html>

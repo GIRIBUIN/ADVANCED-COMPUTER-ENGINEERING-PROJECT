@@ -1,14 +1,14 @@
 import pandas as pd
 
-file_path = '../crawling/coupang_reviews_final_humanized.xlsx'
+file_path = '../crawling/coupang_reviews_final_fixed_v2.xlsx'
 
 # 최대 500개의 행과 50개의 열만 표시하도록 설정
 # pd.set_option('display.max_rows', 500)
 # pd.set_option('display.max_columns', 50)
 
 # usecols에는 리스트 형태로 원하는 열 이름을 전달
-df = pd.read_excel(file_path, usecols=['review_body'])
-clean_df = df.dropna(subset=['review_body'])    # 내용없는 데이터 제거
+df = pd.read_excel(file_path, usecols=['내용'])
+clean_df = df.dropna(subset=['내용'])    # 내용없는 데이터 제거
 string_data = clean_df.to_string(
     index=False,
     header=False,

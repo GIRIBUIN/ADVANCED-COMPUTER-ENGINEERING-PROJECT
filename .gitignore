@@ -3,6 +3,7 @@ venv/
 .venv/
 env/
 .env/
+*.env
 
 # Byte-compiled / optimized / DLL files
 __pycache__/
@@ -16,3 +17,6 @@ src/reviews_data/
 # --- Other ---
 # 로그 파일
 *.log
+
+# 테스트용 엑셀(commit, push 용)
+!../crawling/coupang_reviews_final_humanized.xlsx
