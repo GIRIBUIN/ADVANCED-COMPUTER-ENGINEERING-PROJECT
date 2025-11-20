@@ -34,8 +34,6 @@ def signup():
 
 @bp.route('/login', methods=['POST'])
 def login():
-    
-    # db에서 user 삭제했는데 세션 때문에 로그인 성공할 수 도 있음
     if "user_id" in session:
         user = db.find_user_by_id(session['user_id'])
         if user:
