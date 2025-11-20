@@ -150,8 +150,8 @@ def apply_rating_filter(driver, wait, rating_name):
 def scrape_single_rating(target_url, rating_name, lock):
     """스마트 대기(Dynamic Wait)를 적용하여 속도를 최적화한 수집 함수"""
     
-    # 초기 진입 시 프로세스 몰림 방지 (1~4초 랜덤 대기)
-    start_delay = random.uniform(1, 4)
+    # 초기 진입 시 프로세스 몰림 방지 (0.5~2초 랜덤 대기)
+    start_delay = random.uniform(0.5, 2.0)
     time.sleep(start_delay)
     
     driver = setup_driver(lock)
