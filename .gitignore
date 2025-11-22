@@ -21,3 +21,8 @@ mysql_data/
 
 # db
 config.py
+
+reviewanalyzer-key.pem
+reviewanalyzer-key-01.pem
+reviewanalyzer-nks_kubeconfig.yaml
+reviewanalyzer-db-key-01.pem
