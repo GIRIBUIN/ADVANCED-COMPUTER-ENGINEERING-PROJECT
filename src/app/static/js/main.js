@@ -1,8 +1,12 @@
 // main.js
 
 // 현재 대화 시퀀스 상태를 저장하는 변수
-let currentStep = 1; // 1: 링크 입력 요구, 2: 키워드 입력 요구, 3: 분석 완료
-let inputLink = ''; // 사용자가 입력한 링크 저장
+let currentStep = 1; 
+let inputLink = ''; 
+
+// --- 더미 데이터 (크롤링에서 얻지 못한 값들을 위한 임시 값) ---
+const DUMMY_TOTAL_REVIEWS = 244;
+const DUMMY_AVG_RATING = 3.6; 
 
 document.addEventListener('DOMContentLoaded', () => {
     // 1. 프로그램 시작 및 시스템 메시지 출력 (링크 입력 요구)
@@ -19,7 +23,9 @@ document.addEventListener('DOMContentLoaded', () => {
     });
 });
 
-// 사용자 입력 처리 및 시퀀스 진행 함수
+/**
+ * 사용자 입력 처리 및 대화 시퀀스 진행 함수
+ */
 async function handleUserInput() {
     const inputField = document.getElementById('text-input');
     const tipText = document.getElementById('tip-text');
@@ -29,65 +35,46 @@ async function handleUserInput() {
 
     // 사용자 입력 메시지 출력
     addMessage('user', inputContent);
-    inputField.value = ''; // 입력창 초기화
+    inputField.value = ''; 
 
-    // 시퀀스 분기 처리
     if (currentStep === 1) {
-        // 3. 사용자 링크 입력 완료
         inputLink = inputContent;
-        
-        // 4. 시스템 메시지 (키워드 입력 요구) 출력
         addMessage('system', '링크를 확인했습니다. 분석을 원하시는 **주요 키워드**를 입력해 주세요. (예: 배터리, 카메라, 디자인)');
         currentStep = 2;
-        tipText.textContent = 'Tip: 키워드를 입력하고 전송 버튼을 눌러주세요.';
-
+        tipText.textContent = 'Tip: 키워드(쉼표로 구분)를 입력하고 전송 버튼을 눌러주세요.';
     } else if (currentStep === 2) {
-        // 4. 사용자 키워드 입력 완료
         const keyword = inputContent;
-        
-        // 5, 6, 7. 크롤링, 전처리, AI 분석 및 결과 출력
-        // 사용자가 입력한 링크(inputLink)와 키워드(keyword)를 서버에 전송합니다.
         await startAnalysis(inputLink, keyword);
-
-        // 시퀀스 3으로 이동 (분석 완료 상태)
         currentStep = 3; 
-        tipText.textContent = 'Tip: 새로운 분석을 시작하거나 결과 저장 옵션을 선택하세요.';
-    
+        tipText.textContent = 'Tip: 새로운 분석을 시작하려면 페이지를 새로고침하세요.';
     } else if (currentStep === 3) {
-        // 분석 완료 후 추가 대화 로직
-        addMessage('system', `"${inputContent}"에 대한 추가 액션(예: 저장)은 현재 구현되지 않았습니다. 페이지를 새로고침하여 새로운 분석을 시작해 주세요.`);
+        addMessage('system', `"${inputContent}"에 대한 추가 액션은 현재 구현되지 않았습니다. 페이지를 새로고침하여 새로운 분석을 시작해 주세요.`);
     }
 }
 
-// Flask API 호출 및 분석 과정 실행 함수
+/**
+ * Flask API 호출 및 분석 과정 실행 함수
+ */
 async function startAnalysis(link, keyword) {
-    
-    // 로딩 메시지 출력
-    const loadingMsg = addMessage('system', `🔍 **분석 시작**: 입력된 링크와 키워드 "${keyword}"를 기반으로 데이터를 수집 및 분석합니다. 잠시만 기다려 주세요...`);
+    const loadingMsg = addMessage('system', `🔍 **분석 시작**: 입력된 링크와 키워드 "${keyword}"를 기반으로 데이터를 수집 및 분석합니다. 잠시만 기다려 주세요...`, true);
     
     try {
-        // Flask 서버의 /api/analyze 엔드포인트에 POST 요청을 보냅니다.
+        // 이 부분은 실제 Flask API 경로에 맞게 조정해야 합니다.
         const response = await fetch('/api/analyze', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
-            // link와 keyword를 JSON 바디에 담아 전송
             body: JSON.stringify({ link: link, keyword: keyword })
         });
 
-        // 로딩 메시지 제거
         if (loadingMsg) loadingMsg.remove(); 
 
-        if (response.ok) {
-            const data = await response.json();
-            
-            // 8. 시스템 메시지 출력 (JSON 데이터를 이용한 친화적인 폼)
-            const analysisResult = parseAIResponse(data.result_json, data.keyword);
-            const resultHtml = generateResultHtml(analysisResult);
-            addMessage('result', resultHtml);
+        const data = await response.json();
 
+        if (response.ok) {
+            const resultHtml = generateResultHtml(data.result_json);
+            addMessage('result', resultHtml);
         } else {
-            const errorData = await response.json();
-            addMessage('system', `❌ 분석 실패: ${errorData.message}`);
+            addMessage('system', `❌ 분석 실패: ${data.message || '알 수 없는 오류가 발생했습니다.'}`);
         }
 
     } catch (error) {
@@ -97,13 +84,14 @@ async function startAnalysis(link, keyword) {
     }
 }
 
-// 새로운 메시지를 채팅 영역에 추가하는 함수
+/**
+ * 새로운 메시지를 채팅 영역에 추가하는 함수 (타임스탬프 위치 수정)
+ */
 function addMessage(type, content, isTemporary = false) {
     const chatArea = document.querySelector('.chat-area');
     const messageDiv = document.createElement('div');
     messageDiv.classList.add('message');
     
-    // 메시지 유형에 따른 클래스 및 내용 설정
     if (type === 'user') {
         messageDiv.classList.add('user-message');
         messageDiv.innerHTML = `<div class="link-bubble">${content}</div>`;
@@ -111,92 +99,161 @@ function addMessage(type, content, isTemporary = false) {
         messageDiv.classList.add('system-message');
         messageDiv.innerHTML = `<p>${content}</p>`;
     } else if (type === 'result') {
+        // 리포트 박스
         messageDiv.classList.add('system-message', 'analysis-result-box');
         messageDiv.innerHTML = content; 
     }
 
-    // 시간표시 추가
+    // 타임스탬프 생성
     const now = new Date();
-    // 24시간 형식으로 17:08을 '오후 5:08' 형태로 변환 (간단화)
     const hours = now.getHours();
     const minutes = now.getMinutes().toString().padStart(2, '0');
     const ampm = hours >= 12 ? '오후' : '오전';
-    const displayHours = hours % 12 || 12; // 0시를 12시로 표시
+    const displayHours = hours % 12 || 12; 
     const timeString = `${ampm} ${displayHours}:${minutes}`;
-    messageDiv.innerHTML += `<span class="timestamp">${timeString}</span>`;
+    
+    const timestampSpan = `<span class="timestamp">${timeString}</span>`;
+
+    if (type === 'user') {
+        // 사용자 메시지: 아래, 오른쪽
+        messageDiv.innerHTML += timestampSpan;
+    } else if (type === 'system') {
+        // 시스템 메시지: 아래, 왼쪽 (CSS에서 .system-message .timestamp로 정렬)
+        messageDiv.innerHTML += timestampSpan;
+    } else if (type === 'result') {
+        // 리포트 메시지: 박스 밖에, 왼쪽 (CSS에서 .system-message .timestamp로 정렬)
+        chatArea.appendChild(messageDiv);
+        
+        // 리포트 박스 바로 아래에 타임스탬프를 추가 (별도의 메시지 DIV로)
+        const timestampDiv = document.createElement('div');
+        timestampDiv.classList.add('message', 'system-message', 'timestamp-wrapper');
+        timestampDiv.style.marginBottom = '25px'; // 다음 메시지와의 간격
+        timestampDiv.innerHTML = timestampSpan;
+        
+        // 리포트의 타임스탬프는 왼쪽 정렬
+        timestampDiv.querySelector('.timestamp').style.alignSelf = 'flex-start';
+        timestampDiv.querySelector('.timestamp').style.marginLeft = '0';
+        timestampDiv.querySelector('.timestamp').style.marginRight = '0';
+
+        chatArea.appendChild(timestampDiv);
+        chatArea.scrollTop = chatArea.scrollHeight; 
+        return messageDiv; // isTemporary가 true일 경우를 대비하여 반환
+    }
 
     chatArea.appendChild(messageDiv);
     chatArea.scrollTop = chatArea.scrollHeight; 
 
     if (isTemporary) {
-        return messageDiv; // 임시 메시지일 경우 DOM 요소를 반환하여 나중에 제거할 수 있도록 함
+        return messageDiv;
     }
     return null;
 }
 
-// AI JSON 응답 파싱 및 형식 변환 (프론트엔드에서 처리)
-function parseAIResponse(jsonObj, keyword) {
-    // 평점은 크롤링에서 얻어야 하지만, 현재는 임시값 사용
-    const result = {
-        product_name: "제품 리뷰 분석 완료", 
-        keyword: keyword,
-        rating: "4.3/5.0", 
-        positive_summary: [],
-        negative_summary: []
-    };
 
-    // JSON 객체를 순회하며 리스트 형태로 변환
-    if (jsonObj["긍정적"]) {
-        for (const [key, value] of Object.entries(jsonObj["긍정적"])) {
-            result.positive_summary.push(`**${key}**: ${value}`);
-        }
-    }
-    if (jsonObj["부정적"]) {
-        for (const [key, value] of Object.entries(jsonObj["부정적"])) {
-            result.negative_summary.push(`**${key}**: ${value}`);
-        }
-    }
-    
-    return result;
-}
-
-// 분석 결과를 HTML로 변환하는 함수
+/**
+ * AI JSON 응답을 기반으로 상세 리포트 HTML을 생성하는 함수 (UI 일치 확인)
+ */
 function generateResultHtml(data) {
-    const positiveList = data.positive_summary.map(item => `<li>${item}</li>`).join('');
-    const negativeList = data.negative_summary.map(item => `<li>${item}</li>`).join('');
+    if (!data || !data.keywords_analysis) {
+        return '<p>분석 결과를 불러오지 못했거나 데이터 구조가 올바르지 않습니다.</p>';
+    }
 
-    return `
-        <div class="result-header">
-            <p><strong>${data.product_name}</strong></p>
-        </div>
-
-        <div class="result-body">
-            <p class="keyword-info">분석 키워드: <strong>${data.keyword}</strong></p>
+    let keywordsCount = data.keywords_analysis.length;
+    
+    let resultHtml = `
+        <div class="result-container">
+            <h2 class="section-subtitle">${data.product_name || '제품'} 리뷰 분석 결과</h2>
             
-            <div class="section-title summary-score">
-                <i class="fa-solid fa-star"></i>
-                <span>종합 평점: <strong>${data.rating}</strong></span>
-            </div>
+            <section class="overview-section">
+                <div class="metrics-grid">
+                    <div class="metric-box total-reviews">
+                        <h3>${DUMMY_TOTAL_REVIEWS}</h3>
+                        <p>총 리뷰 수</p>
+                    </div>
+                    <div class="metric-box avg-rating">
+                        <h3>${DUMMY_AVG_RATING}</h3>
+                        <p>평균 평점</p>
+                    </div>
+                    <div class="metric-box analyzed-keywords">
+                        <h3>${keywordsCount}</h3>
+                        <p>분석된 키워드</p>
+                    </div>
+                </div>
+                <div class="summary-box">
+                    <h4>⭐ 전체 요약</h4>
+                    <p>${data.overall_sentiment_summary || '전반적인 감성 요약 내용이 없습니다.'}</p>
+                </div>
+            </section>
+            
+            <h3 class="section-subtitle" style="margin-top: 40px;">키워드별 상세 분석</h3>
 
-            <div class="section-title positive">
-                <i class="fa-solid fa-circle-check"></i>
-                <span>주요 긍정 요약:</span>
-            </div>
-            <ul class="summary-list">
-                ${positiveList || '<li>긍정적인 내용이 부족하거나 해당 키워드에 대한 언급이 없습니다.</li>'}
-            </ul>
+            <section class="keywords-analysis-section">
+                <div class="analysis-list">
+    `;
 
-            <div class="section-title negative">
-                <i class="fa-solid fa-circle-xmark"></i>
-                <span>부정적 의견:</span>
-            </div>
-            <ul class="summary-list">
-                ${negativeList || '<li>부정적인 내용이 부족하거나 해당 키워드에 대한 언급이 없습니다.</li>'}
-            </ul>
+    data.keywords_analysis.forEach(item => {
+        const positiveCount = Number(item.positive_count) || 0;
+        const negativeCount = Number(item.negative_count) || 0;
+        const totalCount = positiveCount + negativeCount;
+        
+        let positivePercentage = 0;
+        let negativePercentage = 0;
 
-            <div class="save-prompt">
-                <p>이 분석 결과를 저장하시겠습니까?</p>
+        if (totalCount > 0) {
+            positivePercentage = (positiveCount / totalCount) * 100;
+            negativePercentage = (negativeCount / totalCount) * 100;
+        }
+        
+        resultHtml += `
+            <div class="keyword-item">
+                <h4>${item.keyword}</h4>
+                
+                <div class="counts-grid">
+                    <div class="count-box positive-bar-group">
+                        <div class="count-header">
+                            <p class="count-label">긍정 리뷰</p> 
+                            <span class="count-number positive">${positiveCount}</span>
+                        </div>
+                        <div class="bar-wrapper">
+                            <div class="count-bar positive" style="width: ${positivePercentage.toFixed(1)}%;"></div>
+                        </div>
+                        <span class="percentage">${positivePercentage.toFixed(1)}%</span>
+                    </div>
+                    
+                    <div class="count-box negative-bar-group">
+                        <div class="count-header">
+                            <p class="count-label">부정 리뷰</p>
+                            <span class="count-number negative">${negativeCount}</span>
+                        </div>
+                        <div class="bar-wrapper">
+                            <div class="count-bar negative" style="width: ${negativePercentage.toFixed(1)}%;"></div>
+                        </div>
+                        <span class="percentage">${negativePercentage.toFixed(1)}%</span>
+                    </div>
+                </div>
+
+                <div class="summary-detail positive-summary-detail">
+                    <strong><i class="fa-regular fa-thumbs-up"></i> 긍정 리뷰 요약</strong>
+                    <p>${item.positive_summary}</p>
+                </div>
+
+                <div class="summary-detail negative-summary-detail" style="margin-top: 15px;">
+                    <strong><i class="fa-regular fa-thumbs-down"></i> 부정 리뷰 요약</strong>
+                    <p>${item.negative_summary}</p>
+                </div>
+            </div>
+        `;
+    });
+    
+    resultHtml += `
+                </div>
+            </section>
+            
+            <div class="save-prompt" style="text-align: center; margin-top: 30px;">
+                <p>✅ 분석이 완료되었습니다. 새로운 분석을 시작하려면 링크와 키워드를 다시 입력해주세요.</p>
             </div>
         </div>
     `;
+
+    return resultHtml;
 }
