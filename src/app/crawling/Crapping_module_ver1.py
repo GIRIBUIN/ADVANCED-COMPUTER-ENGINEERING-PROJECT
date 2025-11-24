@@ -18,7 +18,7 @@ def setup_driver():
     options = uc.ChromeOptions()
     options.add_argument("--disable-blink-features=AutomationControlled")
     options.add_argument("--start-maximized")
-    
+
     try:
         driver = uc.Chrome(options=options, version_main=141)
     except Exception as e:

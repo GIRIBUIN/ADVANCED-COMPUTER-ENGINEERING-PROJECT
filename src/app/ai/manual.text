@@ -6,6 +6,8 @@ Terminal --> python3 -m venv venv
 모듈 설치
 pip install google-generativeai (안되면 pip upgrade 필요)
 pip install dotenv
+pip install setuptools
+pip install setuptools-scm # distutils가 사용하는 다른 종속성도 대비
 
 .env
 https://aistudio.google.com/app/api-keys
@@ -16,3 +18,13 @@ GOOGLE_API_KEY=your_api_key_here
 1. cmd + , : 설정 열기
 2. code-runner.executorMap 검색
 3. settings.json 파일의 python의 경로 수정 (which python3의 결과인 가상환경 절대경로)
+
+flask 설치 및 실행
+pip install Flask pandas requests openpyxl
+pip install python-dotenv google-genai
+pip install undetected-chromedriver selenium
+
+# Flask 환경 변수 설정 (app.py를 실행 파일로 지정)  / window는 export 대신 set 사용
+export FLASK_APP=app.py
+export FLASK_ENV=development
+flask run

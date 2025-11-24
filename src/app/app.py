@@ -127,7 +127,7 @@ def analyze_reviews():
         anal_module.chatbot.reset()
         # analyzer.py에 추가할 analyze_reviews 함수를 호출.
         ai_response = anal_module.analyze_reviews(keyword, review_string)
-        
+        print(ai_response) # ai 출력 테스트
         # 4. JSON 파싱
         try:
             start_index = ai_response.find('{')
