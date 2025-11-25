@@ -3,7 +3,7 @@ import React, { createContext, useContext, useState, useEffect } from 'react';
 const AppContext = createContext();
 
 export const AppProvider = ({ children }) => {
-  // 1. 화면 상태 관리 ('chat', 'saved', 'settings', 'login', 'signup')
+  // 1. 화면 상태 관리
   const [currentView, setCurrentView] = useState('chat');
 
   // 2. 테마 관리
@@ -16,7 +16,23 @@ export const AppProvider = ({ children }) => {
   // 4. 저장된 리뷰 데이터 관리
   const [savedItems, setSavedItems] = useState([]);
 
-  // 테마 변경 효과 적용
+  // ★ 5. 채팅 세션 상태 관리 (여기로 이사옴!) ★
+  const [chatSession, setChatSession] = useState({
+    messages: [],
+    stage: 'init', // init, url_received, done 등
+    isLoading: false
+  });
+
+  // 채팅 초기화 함수 (새 분석 시작용)
+  const resetChat = () => {
+    setChatSession({
+      messages: [],
+      stage: 'init',
+      isLoading: false
+    });
+  };
+
+  // 테마 변경 효과
   useEffect(() => {
     if (isDarkMode) {
       document.documentElement.classList.add('dark');
@@ -38,12 +54,11 @@ export const AppProvider = ({ children }) => {
   };
 
   const saveReview = (reviewData) => {
-    // 중복 저장 방지 (ID 기준)
     if (!savedItems.some(item => item.id === reviewData.id)) {
       setSavedItems([reviewData, ...savedItems]);
-      return true; // 저장 성공
+      return true;
     }
-    return false; // 이미 저장됨
+    return false;
   };
 
   return (
@@ -51,7 +66,8 @@ export const AppProvider = ({ children }) => {
       currentView, setCurrentView,
       isDarkMode, setIsDarkMode,
       isLoggedIn, login, logout, user,
-      savedItems, saveReview
+      savedItems, saveReview,
+      chatSession, setChatSession, resetChat // ★ 추가된 부분
     }}>
       {children}
     </AppContext.Provider>
