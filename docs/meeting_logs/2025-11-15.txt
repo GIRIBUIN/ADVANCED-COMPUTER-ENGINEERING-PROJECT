@@ -1,0 +1,45 @@
+NKS 클라우드 서버 가상 인스턴스 명령어 정리
+
+=================
+빌드 -> 저장 -> 배포 -> 재시작
+=================
+
+1] 이미지 빌드
+
+## deployment.yaml ##
+image: name-registry/app-name:v2.0 에서 버전 숫자 변경
+
+image: name-registry/app-name:v2.1
+
+## bash ##
+$ docker build -t reviewanalyzer-registry/web-app:v2.1 .
+[+] Building 1.7s (10/10) FINISHED
+
+## bash : registry push ##
+$ docker push reviewanalyzer-registry/web-app:v2.1
+The push refers to repository [docker.io/reviewanalyzer-registry/web-app]
+
+2] 쿠버네티스 롤링 업데이트
+기존 pods를 종료하지 않고, 하나씩 추가하면서 성공하면 기존 파드를 제거하는 방식
+
+## 이미지 업데이트 ##
+$ kubectl set image deployment/review-analyzer-deployment flask-container=bbec0b2c-kr1-registry.container.nhncloud.com/reviewanalyzer-registry/flask-app:v2.2
+
+deployment/review-analyzer-deployment: 업데이트할 애플리케이션을 관리하는 Deployment의 이름
+flask-container: Deployment 내에서 업데이트할 컨테이너의 이름
+bbec0b2c-kr1-registry.container.nhncloud.com/reviewanalyzer-registry/flask-app:v2.2: 새로 푸시한 이미지의 주소와 태그
+
+정보 찾기 위한 명령어
+$ kubectl describe deployment
+	deployment 이름 : Name: review-analyzer-deployment
+	container 이름 : Containers: 아래 이름과 이미지 정보 나옴
+
+## 롤아웃 상태 확인 ##
+$ kubectl rollout status deployment/review-analyzer-deployment
+successfully rolled out
+실패 시
+$ kubectl rollout undo deployment/review-analyzer-deployment
+
+
+
+
