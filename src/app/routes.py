@@ -10,7 +10,7 @@ bp = Blueprint('main', __name__)
 @bp.route('/')
 def index():
     """ 메인 페이지를 보여주는 함수 """
-    return render_template('hello.html')
+    return render_template('index.html')
 
 # --- 라우트별 구현  ---
 
