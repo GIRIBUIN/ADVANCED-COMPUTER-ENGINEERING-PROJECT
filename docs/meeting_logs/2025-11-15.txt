@@ -12,11 +12,11 @@ image: name-registry/app-name:v2.0 에서 버전 숫자 변경
 image: name-registry/app-name:v2.1
 
 ## bash ##
-$ docker build -t reviewanalyzer-registry/web-app:v2.1 .
+$ docker build -t bbec0b2c-kr1-registry.container.nhncloud.com/reviewanalyzer-registry/flask-app:v1.0 .
 [+] Building 1.7s (10/10) FINISHED
 
 ## bash : registry push ##
-$ docker push reviewanalyzer-registry/web-app:v2.1
+docker push bbec0b2c-kr1-registry.container.nhncloud.com/reviewanalyzer-registry/flask-app:v1.0
 The push refers to repository [docker.io/reviewanalyzer-registry/web-app]
 
 2] 쿠버네티스 롤링 업데이트
