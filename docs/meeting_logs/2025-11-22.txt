@@ -1,0 +1,80 @@
+#################
+정보 확인
+#################
+
+---------- 리소스 ----------
+kubectl get pods
+kubectl get nodes
+kubectl get services -n default
+
+---------- 상세정보 ----------
+kubectl describe pod
+kubectl describe deployment
+
+
+---------- 로그 ----------
+kubectl logs [pod] -c [container]
+
+---------- 사용량 ----------
+kubectl top nodes
+kubectl top pods
+
+---------- 리소스 타입----------
+kubectl api-resources
+
+
+#################
+배포 관리
+#################
+
+
+---------- yaml 파일 정의된 대로 리소스 업데이트 및 생성 ----------
+kubectl apply -f deployment.yaml
+
+---------- 리소스 생성 ----------
+kubectl create namespace prod
+
+---------- 리소스 제거 ----------
+kubectl delete pod [pod]
+
+---------- 수정 ----------
+kubectl edit service [service]
+
+---------- 이미지 업데이트 ----------
+kubectl set image [deployment/app] [main-cont]=[new-image:v2.0]
+
+
+#################
+디버깅, 로깅
+#################
+
+---------- 컨테이너 내부에서 명령 실행 혹은 셸 접속 ----------
+kubectl exec -it [pod] -- /bin/bash
+
+---------- 로컬 포트를 클러스터 내부의 파드/서비스 포트로 포워딩하고 디버깅 ----------
+kubectl port-forward service/[service] 8080:80
+
+---------- Deployment의 롤링 업데이트 진행 상태 모니터링 ----------
+kubectl rollout status deployment/my-deployment
+
+---------- 롤백 ----------
+kubectl rollout undo deployment/[deployment]
+
+---------- 로컬 시스템과 파드 컨테이너 간에 파일을 복사 ----------
+kubectl cp [pod]:[/app/log.txt] [./local/]
+
+#################
+디버깅, 로깅
+#################
+
+---------- kubeconfig 파일의 설정 내용을 확인 ----------
+kubectl config view
+
+---------- 마스터 컴포넌트(API 서버, KubeDNS 등)의 정보를 확인 ----------
+kubectl cluster-info
+
+---------- 리소스에 **레이블(검색/그룹화)**이나 **주석(메타데이터)**을 추가/변경 ----------
+kubectl label node node01 disktype=ssd
+
+
+
