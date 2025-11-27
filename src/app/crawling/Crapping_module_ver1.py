@@ -285,6 +285,75 @@ def scrape_single_rating(target_url, rating_name, lock=None):
     
     return collected[:MAX_REVIEWS_PER_RATING]
 
+# 제품명 카테고리 뽑는 함수
+def extract_keyword_and_title(target_url):
+    
+    print(f"\n--- [정보 추출 시작] URL: {target_url[:50]}... ---")
+    driver = None
+    result = {
+        "search_keyword": None,
+        "full_title": None,
+        "source": None
+    }
+
+    try:
+        driver = setup_driver()
+        wait = WebDriverWait(driver, 30)
+        driver.get(target_url)
+        
+        # 상품 페이지 핵심 요소 로딩 대기
+        wait.until(EC.presence_of_element_located((By.CSS_SELECTOR, "h1.product-title")))
+        time.sleep(1) # 안정성을 위한 짧은 대기
+
+        # -------------------------------------------------------
+        # 1. [상품명(full_title)] 추출 (항상 시도)
+        # -------------------------------------------------------
+        try:
+            title_element = driver.find_element(By.CSS_SELECTOR, "h1.product-title span[class*='twc-font-bold']")
+            result["full_title"] = title_element.text.strip()
+            print(f"  -> 상품명 추출 성공: {result['full_title']}")
+        except Exception:
+            print("  -> 상품명(full_title) 요소를 찾을 수 없습니다.")
+
+        # -------------------------------------------------------
+        # 2. [키워드(search_keyword)] 추출 로직
+        # -------------------------------------------------------
+        
+        # (1순위) '상품 정보 > 종류' 탐색
+        try:
+            product_desc_div = driver.find_element(By.XPATH, "//div[contains(@class, 'product-description')]")
+            kind_li = product_desc_div.find_element(By.XPATH, ".//li[contains(text(), '종류:')]")
+            
+            full_text = kind_li.text.strip() # 예: "종류: 캔햄"
+            result["search_keyword"] = full_text.split(":")[-1].strip()
+            result["source"] = "종류(Category)"
+            
+            print(f"  -> (1순위) 종류 기반 키워드: '{result['search_keyword']}'")
+
+        except Exception:
+            print("  -> (1순위) '종류' 정보 없음. 2순위(상품명 기반) 시도...")
+
+            # (2순위) '상품명' 기반 키워드 생성 (1순위 실패 시)
+            if result["full_title"]:
+                # 콤마(,)가 있으면 앞부분만 사용, 없으면 전체 사용
+                result["search_keyword"] = result["full_title"].split(",")[0].strip()
+                result["source"] = "상품명(Title)"
+                print(f"  -> (2순위) 상품명 기반 키워드: '{result['search_keyword']}'")
+            else:
+                print("  -> [실패] 상품명조차 없어 키워드 추출 불가.")
+
+    except Exception as e:
+        print(f"  [오류] 정보 추출 중 에러 발생: {e}")
+        traceback.print_exc()
+    
+    finally:
+        if driver:
+            try: driver.quit()
+            except: pass
+
+    return result
+
+
 # 병렬 처리를 위한 래퍼 함수
 def scrape_wrapper(args):
     return scrape_single_rating(*args)
