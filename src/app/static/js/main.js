@@ -52,7 +52,7 @@ function updateUI() {
             로그아웃
         `;
         elements.authLink.onclick = handleLogout;
-        elements.authLink.classList.remove('hidden'); 
+        elements.authLink.classList.remove('hidden');
         elements.userInfo.classList.remove('hidden');
         elements.currentUsername.textContent = STATE.user.user_name;
     } else {
@@ -95,8 +95,8 @@ async function changeScreen(screen) {
 }
 
 // 채팅 기록 및 화면 업데이트
-function pushChat(role, content) {
-    STATE.chatHistory.push({ role, content, timestamp: new Date().toLocaleTimeString() });
+function pushChat(role, content, type = 'text') {
+    STATE.chatHistory.push({ role, content, type, timestamp: new Date().toLocaleTimeString() });
     renderChatArea();
 }
 
@@ -230,9 +230,6 @@ async function runAnalysis(link, keyword) {
 
     if (!inputElement || !buttonElement) return;
 
-    // 1. 사용자 입력 출력
-    // pushChat('user', `링크: ${link}`);
-    pushChat('user', `${keyword}`);
 
     // 2. System: 크롤링/분석 시작 메시지
     pushChat('system', '제공된 링크로 접속하여 리뷰를 크롤링하고 AI 분석을 시작합니다. 잠시 기다려주세요...');
@@ -504,31 +501,62 @@ function renderChatArea() {
 
     chatArea.innerHTML = STATE.chatHistory.map(msg => {
         if (msg.role === 'user') {
-            return `
-                <div class="flex items-start justify-end mb-6">
-                    <div class="max-w-3xl">
-                        <div class="bg-indigo-600 text-white p-4 rounded-xl shadow-md">
-                            <p class="text-sm">${msg.content}</p>
+            if (msg.type === 'keyword') {
+                const keywords = msg.content.split(',').map(k => k.trim());
+
+                const tagsHtml = keywords.map(k =>
+                    `<span class="inline-block bg-indigo-600 text-white px-4 py-2 rounded-full text-sm font-semibold shadow-md">${k}</span>`
+                ).join('');
+
+                return `
+                    <div class="flex items-start justify-end mb-6">
+                        <div class="max-w-3xl flex flex-wrap gap-2 justify-end">
+                            ${tagsHtml}
                         </div>
+                        <div class="flex-shrink-0 w-8 h-8 bg-gray-300 rounded-full flex items-center justify-center text-sm ml-4">U</div>
                     </div>
-                    <div class="flex-shrink-0 w-8 h-8 bg-gray-300 rounded-full flex items-center justify-center text-sm ml-4">U</div>
-                </div>
-            `;
+                `;
+            }
+            // 2) 일반 텍스트/URL일 경우: 기존 말풍선 유지
+            else {
+                return `
+                    <div class="flex items-start justify-end mb-6">
+                        <div class="max-w-3xl">
+                            <div class="bg-indigo-600 text-white p-4 rounded-xl shadow-md">
+                                <p class="text-sm break-all">${msg.content}</p>
+                            </div>
+                        </div>
+                        <div class="flex-shrink-0 w-8 h-8 bg-gray-300 rounded-full flex items-center justify-center text-sm ml-4">U</div>
+                    </div>
+                `;
+            }
         } else if (msg.content === '__ANALYSIS_RESULT_CARD__') {
             return getAnalysisCard(STATE.analysisResult);
         } else {
+            // 시스템 메시지
+            let contentHtml = '';
+            if (msg.content === '__ANALYSIS_RESULT_CARD__') {
+                // 분석 결과가 있을 때만 카드 렌더링 (안전을 위한 추가 확인)
+                contentHtml = STATE.analysisResult ? getAnalysisCard(STATE.analysisResult) : '<p>분석 결과를 불러오는 데 실패했습니다.</p>';
+            } else if (msg.content.includes('🚫')) {
+                // 오류 메시지
+                contentHtml = `<p class="text-red-600 font-medium">${msg.content}</p>`;
+            } else {
+                // 일반 시스템 메시지 (크롤링 시작, 키워드 요청 등)
+                contentHtml = `<p>${msg.content}</p>`;
+            }
             return `
-                <div class="flex items-start mb-6">
-                    <div class="flex-shrink-0 w-8 h-8 bg-indigo-500 rounded-full flex items-center justify-center text-white text-sm mr-4">
-                        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 3v2m6-2v2M9 19v2m6-2v2M5 10v2m14-2v2M5 10h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2h14a2 2 0 002-2v-3"></path></svg>
-                    </div>
-                    <div class="max-w-3xl">
-                        <div class="bg-white p-4 rounded-xl shadow-md border border-gray-100">
-                            <p>${msg.content}</p>
-                        </div>
-                    </div>
-                </div>
-            `;
+              <div class="flex items-start mb-6">
+                  <div class="flex-shrink-0 w-8 h-8 bg-indigo-500 rounded-full flex items-center justify-center text-white text-sm mr-4">
+                      <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 3v2m6-2v2M9 19v2m6-2v2M5 10v2m14-2v2M5 10h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2h14a2 2 0 002-2v-3"></path></svg>
+                  </div>
+                  <div class="max-w-3xl">
+                      <div class="bg-white p-4 rounded-xl shadow-md border border-gray-100">
+                          ${contentHtml}
+                      </div>
+                  </div>
+              </div>
+          `;
         }
     }).join('');
 
@@ -553,13 +581,13 @@ async function handleChatSubmit(e) {
         }
 
         STATE.tempUrl = value;
-        pushChat('user', `${value}`);
+        pushChat('user', `${value}`, 'text');
         pushChat('system', `URL을 확인했습니다. 어떤 키워드로 분석을 진행할까요? (예: 키워드: 배터리, 카메라)`);
 
         // 2. 키워드 입력 단계
     } else if (STATE.chatHistory.length > 0 && STATE.tempUrl) {
         let keywordValue = value;
-        
+
         if (value.toLowerCase().startsWith('키워드:')) {
             keywordValue = value.substring('키워드:'.length).trim();
         }
@@ -569,6 +597,7 @@ async function handleChatSubmit(e) {
             return;
         }
 
+        pushChat('user', keywordValue, 'keyword');
         await runAnalysis(STATE.tempUrl, keywordValue);
         delete STATE.tempUrl;
 
