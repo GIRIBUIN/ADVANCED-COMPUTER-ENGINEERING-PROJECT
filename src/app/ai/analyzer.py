@@ -1,4 +1,4 @@
-from chatbot import ChatBot
+from .chatbot import ChatBot
 # from readData import final_string
 
 # system_message, ai에 프롬프트에 키워드와 리뷰 데이터 어떻게 넣을지 고민
