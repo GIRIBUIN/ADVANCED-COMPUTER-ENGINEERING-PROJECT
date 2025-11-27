@@ -27,7 +27,7 @@ def setup_driver(lock=None):
     
     # [속도 향상] Headless 모드 적용 (탐지 우회를 위해 'new' 옵션 사용)
     # 만약 실행 시 차단되거나 리뷰가 0개라면 이 줄을 주석 처리하세요.
-    #options.add_argument("--headless=new") 
+    # options.add_argument("--headless=new") 
     
     # 리소스 절약 옵션
     options.add_argument("--disable-gpu")
@@ -123,9 +123,9 @@ def extract_reviews(driver, current_rating_filter):
         except: 
             continue
     return reviews_data
-
+"""
 def apply_rating_filter(driver, wait, rating_name):
-    """별점 필터 적용"""
+    # 별점 필터 적용 함수
     try:
         filter_btn = wait.until(EC.visibility_of_element_located((By.CSS_SELECTOR, "div[role='combobox']")))
         
@@ -146,7 +146,36 @@ def apply_rating_filter(driver, wait, rating_name):
     except Exception as e:
         # print(f"[{rating_name}] 필터 적용 실패: {str(e)[:50]}")
         return False
+"""
+def apply_rating_filter(driver, wait, rating_name):
+    """별점 필터 적용 (JS 강제 클릭 적용)"""
+    try:
+        # 콤보박스 찾기
+        filter_btn = wait.until(EC.presence_of_element_located((By.CSS_SELECTOR, "div[role='combobox']")))
+        
+        # 이미 해당 별점이 선택되어 있는지 확인
+        if rating_name in filter_btn.text and "모든 별점" not in filter_btn.text:
+            return True
 
+        # [수정] 화면 스크롤 후 '자바스크립트'로 강제 클릭 (가림 현상 방지)
+        driver.execute_script("arguments[0].scrollIntoView({block: 'center'});", filter_btn)
+        time.sleep(1) # 스크롤 후 잠시 대기
+        driver.execute_script("arguments[0].click();", filter_btn)
+        
+        # 팝업 옵션 선택
+        popup = wait.until(EC.visibility_of_element_located((By.CSS_SELECTOR, "[data-radix-popper-content-wrapper]")))
+        option = popup.find_element(By.XPATH, f".//div[contains(text(), '{rating_name}')]")
+        
+        # [수정] 옵션 클릭도 자바스크립트로 강제 실행
+        driver.execute_script("arguments[0].click();", option)
+        
+        # 팝업 닫힘 대기
+        wait.until(EC.invisibility_of_element_located((By.CSS_SELECTOR, "[data-radix-popper-content-wrapper]")))
+        time.sleep(1.5) # 필터 적용 후 데이터 로딩 대기
+        return True
+    except Exception as e:
+        print(f"   FAIL: [{rating_name}] 필터 진입 실패 (원인: {str(e)[:50]})")
+        return False
 def scrape_single_rating(target_url, rating_name, lock):
     """스마트 대기(Dynamic Wait)를 적용하여 속도를 최적화한 수집 함수"""
     
@@ -220,12 +249,20 @@ def scrape_single_rating(target_url, rating_name, lock):
                         consecutive_failures = 0
                         print(f"ING: [{rating_name}] {current_page}페이지 {len(new_reviews)}개 (누적: {len(collected)})")
                     else:
+                        # [수정] 페이지는 있는데 리뷰가 0개인 경우 (혹은 로딩 실패)
                         if pagination is None and current_page == 1:
-                            print(f"INFO: [{rating_name}] 리뷰 없음 -> 종료")
+                            print(f"INFO: [{rating_name}] 리뷰가 존재하지 않음 -> 종료")
                             break 
                         consecutive_failures += 1
+                    
                 
                 if len(collected) >= MAX_REVIEWS_PER_RATING: break
+
+                # [수정] 단일 페이지(페이지네이션 없음)인 경우, 1페이지 수집 후 즉시 종료
+                if pagination is None:
+                    if len(collected) > 0:
+                        print(f"INFO: [{rating_name}] 단일 페이지 수집 완료. 종료.")
+                    break
 
                 # --- 다음 페이지 이동 ---
                 if pagination:
@@ -253,7 +290,7 @@ def scrape_single_rating(target_url, rating_name, lock):
                         time.sleep(random.uniform(1.5, 2.5)) 
                         
                     else:
-                        # 다음 그룹(>) 버튼 처리
+                        # 다음 숫자 버튼이 없을 때 -> '다음 그룹(>)' 버튼 확인
                         try:
                             next_group = pagination.find_element(By.XPATH, ".//button[.//svg[not(contains(@class, 'twc-rotate'))]]")
                             if next_group.is_enabled():
@@ -261,9 +298,15 @@ def scrape_single_rating(target_url, rating_name, lock):
                                 except: driver.execute_script("arguments[0].click();", next_group)
                                 time.sleep(random.uniform(2.0, 3.0))
                             else:
+                                # [수정] 다음 그룹 버튼이 있지만 비활성화됨 -> 마지막 페이지 -> 종료
+                                print(f"INFO: [{rating_name}] 마지막 페이지 도달 (총 {len(collected)}개). 종료.")
                                 break
-                        except: break
+                        except:
+                             # [수정] 다음 숫자도 없고, 다음 그룹 버튼도 찾을 수 없음 -> 마지막 페이지 -> 종료
+                            print(f"INFO: [{rating_name}] 더 이상 이동할 페이지가 없습니다 (총 {len(collected)}개). 종료.")
+                            break
                 else:
+                    # 페이지네이션 요소가 사라진 경우 (에러 상황 등)
                     if consecutive_failures >= 3: break
                     time.sleep(2)
 
@@ -291,7 +334,7 @@ if __name__ == "__main__":
     freeze_support()
 
     # 대상 URL (여기에 원하시는 상품 URL을 입력하세요)
-    target_url = "https://www.coupang.com/vp/products/7224339339?vendorItemId=3051369121&sourceType=SDP_ALSO_VIEWED"
+    target_url = "https://www.coupang.com/vp/products/8939105810?itemId=26138793918&searchId=feed-8332911ab12f4d048d7a0d415923ef2b-view_together_ads-P8054602080&vendorItemId=93118924153&sourceType=SDP_ADS&clickEventId=51ae5090-cb61-11f0-b175-4a0154c1e611"
     
     print("=== 병렬 리뷰 스크래핑 시작 (프로세스 5개 / Headless) ===")
     
@@ -308,7 +351,7 @@ if __name__ == "__main__":
     # 프로세스 풀 가동 (5개 동시 실행)
     with Pool(processes=len(TARGET_RATINGS)) as pool:
         results_list = pool.map(scrape_wrapper, tasks)
-        for result in results_list:
+        for result in results_list: 
             all_results.extend(result)
 
     end_time = time.time()
