@@ -10,6 +10,9 @@ from selenium.webdriver.support import expected_conditions as EC
 from selenium.common.exceptions import NoSuchElementException, TimeoutException
 from selenium.webdriver.common.action_chains import ActionChains
 
+# [추가] HTML 파싱 속도 향상을 위한 BeautifulSoup
+from bs4 import BeautifulSoup
+
 # 병렬 처리 및 프로세스 간 동기화를 위한 라이브러리
 from multiprocessing import Pool, freeze_support, Manager
 
@@ -25,11 +28,10 @@ def setup_driver(lock=None):
     options.add_argument("--disable-blink-features=AutomationControlled")
     options.add_argument("--start-maximized")
     
-    # [속도 향상] Headless 모드 적용 (탐지 우회를 위해 'new' 옵션 사용)
+    # [속도 향상] Headless 모드 적용
     # 만약 실행 시 차단되거나 리뷰가 0개라면 이 줄을 주석 처리하세요.
     # options.add_argument("--headless=new") 
     
-    # 리소스 절약 옵션
     options.add_argument("--disable-gpu")
     options.add_argument("--no-sandbox")
     
@@ -39,16 +41,13 @@ def setup_driver(lock=None):
     if lock: lock.acquire()
     
     try:
-        # 특정 버전(141) 지정 (사용자 환경에 맞춤)
         driver = uc.Chrome(options=options, version_main=141)
     except Exception as e:
         try:
-            # 실패 시 자동 감지 모드로 재시도
             driver = uc.Chrome(options=options)
         except Exception as e2:
             print(f"   [치명적 오류] 드라이버 로드 실패: {e2}")
     finally:
-        # 드라이버 로드 후 락 해제 (다른 프로세스 진입 허용)
         if lock:
             time.sleep(1) 
             lock.release()
@@ -56,43 +55,60 @@ def setup_driver(lock=None):
     return driver
 
 def extract_reviews(driver, current_rating_filter):
-    """리뷰 데이터 추출 (구형 UI / 신형 UI 호환)"""
+    """
+    [속도 최적화 적용] 
+    Selenium으로 로딩된 HTML을 가져와 BeautifulSoup으로 파싱합니다.
+    기존 방식(Selenium find_element)보다 추출 속도가 훨씬 빠릅니다.
+    """
     reviews_data = []
     
-    # 리뷰 아이템을 찾는 포괄적인 XPath
+    # 리뷰 아이템을 찾는 포괄적인 XPath (로딩 대기용)
     review_article_xpath = "//article[contains(@class, 'sdp-review__article__list') or contains(@class, 'twc-pt-[16px]')]"
 
     try:
-        # 요소가 로드될 때까지 짧게 대기
+        # 요소가 화면에 로드될 때까지는 Selenium이 기다려줍니다.
         WebDriverWait(driver, 5).until(
             EC.presence_of_all_elements_located((By.XPATH, review_article_xpath))
         )
     except TimeoutException:
         return []
 
-    articles = driver.find_elements(By.XPATH, review_article_xpath)
+    # [핵심 변경] 전체 HTML 소스를 한 번에 가져와서 메모리에서 분석 (BeautifulSoup)
+    html = driver.page_source
+    soup = BeautifulSoup(html, 'html.parser')
+    
+    # 구형 UI와 신형 UI의 article 클래스를 모두 찾습니다.
+    articles = soup.find_all('article', class_=lambda x: x and ('sdp-review__article__list' in x or 'twc-pt-[16px]' in x))
     
     for article in articles:
         try:
+            # BeautifulSoup용 텍스트 추출 헬퍼 함수
             def get_text(selector):
-                try: return article.find_element(By.CSS_SELECTOR, selector).text.strip()
-                except: return ""
+                el = article.select_one(selector)
+                return el.get_text(strip=True) if el else ""
 
             # 작성자
-            author = article.find_element(By.CSS_SELECTOR, "span[data-member-id]").text.strip()
+            author_el = article.select_one("span[data-member-id]")
+            author = author_el.get_text(strip=True) if author_el else ""
             
-            # 평점
-            rating = len(article.find_elements(By.CSS_SELECTOR, "i.twc-bg-full-star"))
+            # 평점 (채워진 별의 개수)
+            rating = len(article.select("i.twc-bg-full-star"))
             
             # 날짜
             date = get_text("div.sdp-review__article__list__info__product-info__reg-date")
-            if not date: 
-                date = article.find_element(By.XPATH, ".//div[i[contains(@class, 'twc-bg-full-star')]]/following-sibling::div").text.strip()
+            if not date:
+                # 신형 UI 날짜 구조 대응 (별점 다음 div)
+                try:
+                    stars_div = article.select_one("div:has(> i.twc-bg-full-star)")
+                    if stars_div:
+                        date_div = stars_div.find_next_sibling("div")
+                        if date_div: date = date_div.get_text(strip=True)
+                except: pass
             
             # 구매옵션
             product_option = get_text("div.sdp-review__article__list__info__product-info__name")
             if not product_option: 
-                product_option = get_text("div.twc-my-\\[16px\\]")
+                product_option = get_text("div.twc-my-\\[16px\\]") # CSS selector escape for [16px]
             
             # 리뷰 제목
             review_title = get_text("div.sdp-review__article__list__headline")
@@ -107,13 +123,17 @@ def extract_reviews(driver, current_rating_filter):
             # 도움됨 카운트
             helpful = 0
             try: 
-                helpful = int(article.find_element(By.CSS_SELECTOR, "div.sdp-review__article__list__help").get_attribute("data-count"))
+                help_div = article.select_one("div.sdp-review__article__list__help")
+                if help_div and help_div.has_attr("data-count"):
+                    helpful = int(help_div["data-count"])
+                else:
+                    # 텍스트에서 '명에게 도움되었습니다' 찾기
+                    help_text_div = article.find("div", string=lambda text: text and "명에게 도움되었습니다" in text)
+                    if help_text_div:
+                        text = help_text_div.get_text(strip=True)
+                        helpful = int(text.split('명')[0].replace(',', '').strip())
             except: 
-                try:
-                    helpful_text = article.find_element(By.XPATH, ".//div[contains(text(), '명에게 도움되었습니다.')]").text
-                    helpful = int(helpful_text.split('명')[0].replace(',', '').strip())
-                except:
-                    pass
+                pass
             
             reviews_data.append({
                 "별점필터": current_rating_filter,
@@ -122,64 +142,36 @@ def extract_reviews(driver, current_rating_filter):
             })
         except: 
             continue
+            
     return reviews_data
-"""
-def apply_rating_filter(driver, wait, rating_name):
-    # 별점 필터 적용 함수
-    try:
-        filter_btn = wait.until(EC.visibility_of_element_located((By.CSS_SELECTOR, "div[role='combobox']")))
-        
-        if rating_name in filter_btn.text and "모든 별점" not in filter_btn.text:
-            return True
 
-        driver.execute_script("arguments[0].scrollIntoView({block: 'center'});", filter_btn)
-        time.sleep(0.5)
-        filter_btn.click()
-        
-        popup = wait.until(EC.visibility_of_element_located((By.CSS_SELECTOR, "[data-radix-popper-content-wrapper]")))
-        option = popup.find_element(By.XPATH, f".//div[contains(text(), '{rating_name}')]")
-        option.click()
-        
-        wait.until(EC.invisibility_of_element_located((By.CSS_SELECTOR, "[data-radix-popper-content-wrapper]")))
-        time.sleep(1.5) # 필터 적용 후 로딩 대기
-        return True
-    except Exception as e:
-        # print(f"[{rating_name}] 필터 적용 실패: {str(e)[:50]}")
-        return False
-"""
 def apply_rating_filter(driver, wait, rating_name):
     """별점 필터 적용 (JS 강제 클릭 적용)"""
     try:
-        # 콤보박스 찾기
         filter_btn = wait.until(EC.presence_of_element_located((By.CSS_SELECTOR, "div[role='combobox']")))
         
-        # 이미 해당 별점이 선택되어 있는지 확인
         if rating_name in filter_btn.text and "모든 별점" not in filter_btn.text:
             return True
 
-        # [수정] 화면 스크롤 후 '자바스크립트'로 강제 클릭 (가림 현상 방지)
         driver.execute_script("arguments[0].scrollIntoView({block: 'center'});", filter_btn)
-        time.sleep(1) # 스크롤 후 잠시 대기
+        time.sleep(1) 
         driver.execute_script("arguments[0].click();", filter_btn)
         
-        # 팝업 옵션 선택
         popup = wait.until(EC.visibility_of_element_located((By.CSS_SELECTOR, "[data-radix-popper-content-wrapper]")))
         option = popup.find_element(By.XPATH, f".//div[contains(text(), '{rating_name}')]")
         
-        # [수정] 옵션 클릭도 자바스크립트로 강제 실행
         driver.execute_script("arguments[0].click();", option)
         
-        # 팝업 닫힘 대기
         wait.until(EC.invisibility_of_element_located((By.CSS_SELECTOR, "[data-radix-popper-content-wrapper]")))
-        time.sleep(1.5) # 필터 적용 후 데이터 로딩 대기
+        time.sleep(1.5) 
         return True
     except Exception as e:
         print(f"   FAIL: [{rating_name}] 필터 진입 실패 (원인: {str(e)[:50]})")
         return False
+
 def scrape_single_rating(target_url, rating_name, lock):
     """스마트 대기(Dynamic Wait)를 적용하여 속도를 최적화한 수집 함수"""
     
-    # 초기 진입 시 프로세스 몰림 방지 (0.5~2초 랜덤 대기)
     start_delay = random.uniform(0.5, 2.0)
     time.sleep(start_delay)
     
@@ -190,11 +182,9 @@ def scrape_single_rating(target_url, rating_name, lock):
     print(f"START: [{rating_name}] (Headless) 수집 시작")
     
     try:
-        # [속도 최적화] 기본 대기 시간 설정
         wait = WebDriverWait(driver, 20)
         driver.get(target_url)
         
-        # 상품평 탭 클릭
         try:
             review_tab = wait.until(EC.element_to_be_clickable((By.XPATH, "//a[contains(text(),'상품평')]")))
             ActionChains(driver).move_to_element(review_tab).click().perform()
@@ -202,11 +192,9 @@ def scrape_single_rating(target_url, rating_name, lock):
             print(f"FAIL: [{rating_name}] 상품평 탭을 찾을 수 없음")
             return []
 
-        # 리뷰 섹션 로딩
         review_section = wait.until(EC.presence_of_element_located((By.ID, "sdpReview")))
         driver.execute_script("arguments[0].scrollIntoView(true);", review_section)
         
-        # 별점 필터 적용
         if not apply_rating_filter(driver, wait, rating_name):
             print(f"FAIL: [{rating_name}] 필터 적용 실패")
             return []
@@ -216,7 +204,6 @@ def scrape_single_rating(target_url, rating_name, lock):
 
         while len(collected) < MAX_REVIEWS_PER_RATING:
             try:
-                # 페이지네이션 바 감지 (최대 5초만 대기)
                 pagination_xpath = "//div[@data-page and @data-start and @data-end]"
                 is_new_ui = False 
                 pagination = None
@@ -228,9 +215,8 @@ def scrape_single_rating(target_url, rating_name, lock):
                     if "twc-mt-[24px]" in pagination.get_attribute("class"):
                         is_new_ui = True
                 except TimeoutException:
-                    pass # 없으면 단일 페이지일 수 있음
+                    pass 
 
-                # 현재 페이지 번호 파악
                 current_page = 1
                 if pagination:
                     try:
@@ -240,7 +226,7 @@ def scrape_single_rating(target_url, rating_name, lock):
                             current_page = int(pagination.find_element(By.CSS_SELECTOR, "button.selected").text.strip())
                     except: pass
 
-                # --- 리뷰 수집 ---
+                # --- 리뷰 수집 (여기서 수정된 extract_reviews 호출) ---
                 if current_page not in visited_pages:
                     new_reviews = extract_reviews(driver, rating_name)
                     if new_reviews:
@@ -249,16 +235,13 @@ def scrape_single_rating(target_url, rating_name, lock):
                         consecutive_failures = 0
                         print(f"ING: [{rating_name}] {current_page}페이지 {len(new_reviews)}개 (누적: {len(collected)})")
                     else:
-                        # [수정] 페이지는 있는데 리뷰가 0개인 경우 (혹은 로딩 실패)
                         if pagination is None and current_page == 1:
                             print(f"INFO: [{rating_name}] 리뷰가 존재하지 않음 -> 종료")
                             break 
                         consecutive_failures += 1
-                    
                 
                 if len(collected) >= MAX_REVIEWS_PER_RATING: break
 
-                # [수정] 단일 페이지(페이지네이션 없음)인 경우, 1페이지 수집 후 즉시 종료
                 if pagination is None:
                     if len(collected) > 0:
                         print(f"INFO: [{rating_name}] 단일 페이지 수집 완료. 종료.")
@@ -285,12 +268,8 @@ def scrape_single_rating(target_url, rating_name, lock):
                     if next_btn:
                         try: next_btn.click()
                         except: driver.execute_script("arguments[0].click();", next_btn)
-                        
-                        # [속도 최적화] 페이지 로딩 대기 (봇 탐지 방지용 최소 딜레이 포함)
                         time.sleep(random.uniform(1.5, 2.5)) 
-                        
                     else:
-                        # 다음 숫자 버튼이 없을 때 -> '다음 그룹(>)' 버튼 확인
                         try:
                             next_group = pagination.find_element(By.XPATH, ".//button[.//svg[not(contains(@class, 'twc-rotate'))]]")
                             if next_group.is_enabled():
@@ -298,15 +277,12 @@ def scrape_single_rating(target_url, rating_name, lock):
                                 except: driver.execute_script("arguments[0].click();", next_group)
                                 time.sleep(random.uniform(2.0, 3.0))
                             else:
-                                # [수정] 다음 그룹 버튼이 있지만 비활성화됨 -> 마지막 페이지 -> 종료
                                 print(f"INFO: [{rating_name}] 마지막 페이지 도달 (총 {len(collected)}개). 종료.")
                                 break
                         except:
-                             # [수정] 다음 숫자도 없고, 다음 그룹 버튼도 찾을 수 없음 -> 마지막 페이지 -> 종료
                             print(f"INFO: [{rating_name}] 더 이상 이동할 페이지가 없습니다 (총 {len(collected)}개). 종료.")
                             break
                 else:
-                    # 페이지네이션 요소가 사라진 경우 (에러 상황 등)
                     if consecutive_failures >= 3: break
                     time.sleep(2)
 
@@ -325,30 +301,24 @@ def scrape_single_rating(target_url, rating_name, lock):
     
     return collected[:MAX_REVIEWS_PER_RATING]
 
-# 병렬 처리를 위한 래퍼 함수
 def scrape_wrapper(args):
     return scrape_single_rating(*args)
 
 if __name__ == "__main__":
-    # Windows 멀티프로세싱 필수 설정
     freeze_support()
 
-    # 대상 URL (여기에 원하시는 상품 URL을 입력하세요)
-    target_url = "https://www.coupang.com/vp/products/8939105810?itemId=26138793918&searchId=feed-8332911ab12f4d048d7a0d415923ef2b-view_together_ads-P8054602080&vendorItemId=93118924153&sourceType=SDP_ADS&clickEventId=51ae5090-cb61-11f0-b175-4a0154c1e611"
+    target_url = "https://www.coupang.com/vp/products/7666070794?itemId=26528256734&searchId=feed-916be5672b844ae3a868a9ae4de0a60d-view_together_ads-P7224339339&vendorItemId=93409074156&sourceType=SDP_ADS&clickEventId=42651fd0-cb6e-11f0-bf3a-f1516b466eb7"
     
-    print("=== 병렬 리뷰 스크래핑 시작 (프로세스 5개 / Headless) ===")
+    print("=== 병렬 리뷰 스크래핑 시작 (프로세스 5개 / Headless + BeautifulSoup) ===")
     
-    # 프로세스 간 공유 락 생성
     m = Manager()
     lock = m.Lock()
 
-    # 작업 목록 생성
     tasks = [(target_url, rating, lock) for rating in TARGET_RATINGS]
 
     start_time = time.time()
     all_results = []
 
-    # 프로세스 풀 가동 (5개 동시 실행)
     with Pool(processes=len(TARGET_RATINGS)) as pool:
         results_list = pool.map(scrape_wrapper, tasks)
         for result in results_list: 
