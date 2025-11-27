@@ -61,6 +61,15 @@ def find_user_by_id(user_id):
     user = cursor.fetchone()
     return user
 
+def delete_user(user_id):
+    """ 회원 탈퇴: user_id로 삭제 """
+    db = get_db()
+    cursor = db.cursor()
+    sql = "DELETE FROM USERS WHERE user_id = %s"
+    cursor.execute(sql, (user_id,))
+    db.commit()
+    return cursor.rowcount
+
 # =============================
 # 저장, 라이브러리 관련 
 # ANALYSES (analysis_id, url, analysis_text, category_id)
