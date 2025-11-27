@@ -231,7 +231,8 @@ async function runAnalysis(link, keyword) {
     if (!inputElement || !buttonElement) return;
 
     // 1. 사용자 입력 출력
-    pushChat('user', `링크: ${link}, 키워드: ${keyword}`);
+    // pushChat('user', `링크: ${link}`);
+    pushChat('user', `${keyword}`);
 
     // 2. System: 크롤링/분석 시작 메시지
     pushChat('system', '제공된 링크로 접속하여 리뷰를 크롤링하고 AI 분석을 시작합니다. 잠시 기다려주세요...');
@@ -558,10 +559,11 @@ async function handleChatSubmit(e) {
         // 2. 키워드 입력 단계
     } else if (STATE.chatHistory.length > 0 && STATE.tempUrl) {
         let keywordValue = value;
+        
         if (value.toLowerCase().startsWith('키워드:')) {
             keywordValue = value.substring('키워드:'.length).trim();
         }
-
+        console.log('사용자가 입력한 값:', keywordValue);
         if (!keywordValue) {
             pushChat('system', '분석할 키워드를 쉼표로 구분하여 입력해주세요.');
             return;
