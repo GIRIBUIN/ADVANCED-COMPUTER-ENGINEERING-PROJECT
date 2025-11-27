@@ -8,6 +8,7 @@ pip install google-generativeai (안되면 pip upgrade 필요)
 pip install dotenv
 pip install setuptools
 pip install setuptools-scm # distutils가 사용하는 다른 종속성도 대비
+pip3 install --upgrade setuptools
 
 .env
 https://aistudio.google.com/app/api-keys
