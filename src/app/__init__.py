@@ -15,4 +15,8 @@ def create_app():
     from . import routes
     app.register_blueprint(routes.bp)
 
+    if app.config.get('DEBUG'):
+        from . import test_routes
+        app.register_blueprint(test_routes.bp)
+
     return app
