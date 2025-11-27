@@ -17,7 +17,13 @@ $ docker build -t bbec0b2c-kr1-registry.container.nhncloud.com/reviewanalyzer-re
 
 ## bash : registry push ##
 docker push bbec0b2c-kr1-registry.container.nhncloud.com/reviewanalyzer-registry/flask-app:v1.0
-The push refers to repository [docker.io/reviewanalyzer-registry/web-app]
+The push refers to repository 
+
+## 시크릿배포 ##
+kubectl create secret docker-registry reviewanalyzer-secret --docker-server=bbec0b2c-kr1-registry.container.nhncloud.com/reviewanalyzer-registry --docker-username=xXCVAxJWQwBXXaKBvfmj --docker-password=ddlGSCyRwArw2GVD
+
+## deployment 적용 ##
+kubectl apply -f deployment.yaml
 
 2] 쿠버네티스 롤링 업데이트
 기존 pods를 종료하지 않고, 하나씩 추가하면서 성공하면 기존 파드를 제거하는 방식
