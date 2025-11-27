@@ -1,20 +1,40 @@
-# 1. 베이스 이미지 설정
-FROM python:3.13-slim
+FROM python:3.11-slim
 
-# 2. 작업 디렉토리 설정
+
+ENV PYTHONDONTWRITEBYTECODE=1
+ENV PYTHONUNBUFFERED=1
+
+
 WORKDIR /app
 
-# 4. requirements.txt 복사 및 라이브러리 설치
-COPY requirements.txt .
-RUN pip install -r requirements.txt
 
-# 5. 앱 폴더 복사
+RUN apt-get update && apt-get install -y \
+    wget \
+    gnupg \
+    unzip \
+    curl \
+    fonts-liberation \
+    libappindicator3-1 \
+    libasound2 \
+    libatk-bridge2.0-0 \
+    libnspr4 \
+    libnss3 \
+    lsb-release \
+    xdg-utils \
+    libgbm1 \
+    --no-install-recommends
+
+
+RUN wget -q -O - https://dl-ssl.google.com/linux/linux_signing_key.pub | \
+    gpg --dearmor -o /usr/share/keyrings/google-chrome.gpg && \
+    echo "deb [arch=amd64 signed-by=/usr/share/keyrings/google-chrome.gpg] http://dl.google.com/linux/chrome/deb/ stable main" > /etc/apt/sources.list.d/google-chrome.list && \
+    apt-get update && apt-get install -y google-chrome-stable && \
+    rm -rf /var/lib/apt/lists/*
+
+COPY requirements.txt .
+RUN pip install --no-cache-dir -r requirements.txt
+
 COPY . .
 
-# 6. Flask 실행 환경 변수 설정
-ENV FLASK_APP="app:create_app()"
-ENV FLASK_ENV=development
-ENV FLASK_RUN_HOST=0.0.0.0
-
-# 7. 컨테이너가 시작될 때 "flask run" 명령어를 실행
-CMD ["flask", "run"]
+ENV PYTHONPATH=/app
+CMD ["python", "run.py"]

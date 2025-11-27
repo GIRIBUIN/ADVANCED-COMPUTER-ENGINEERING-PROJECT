@@ -6,15 +6,20 @@ services:
     ports:
       - "5000:5000"
     volumes:
-      - ./app:/app
+      - .:/app
     # db 서비스가 시작된 후에 실행되도록 의존성을 설정
     depends_on:
       - db
+    shm_size: '2gb'
 
     environment:
+      - MYSQL_HOST=db
       - MYSQL_USER=user
       - MYSQL_PASSWORD=password123!
       - MYSQL_DATABASE=review_analyzer_db
+      - GOOGLE_API_KEY=AIzaSyAGi5p-oZ-dsyMyNYyjusN-ZCDpYuWW5TE
+       - SECRET_KEY=dev_secret
+      - FLASK_DEBUG=1
 
   db:
     image: mysql:8.0
