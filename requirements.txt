@@ -1,0 +1,21 @@
+# Flask Framework
+Flask
+
+# Database Connector
+PyMySQL
+
+# AI Analysis (Google Gemini)
+google-generativeai
+python-dotenv
+
+# Web Crawling
+undetected-chromedriver
+selenium
+beautifulsoup4
+
+# Data Handling
+pandas
+
+# Excel file support for pandas
+openpyxl
+setuptools
