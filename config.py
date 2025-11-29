@@ -18,13 +18,14 @@ SECRET_KEY = os.urandom(24)
 
 # --- 데이터베이스 연결 설정 ---
 # Windows 앱 서버에서 DB 서버(reviewanalyzer-db)를 바라보는 설정입니다.
-# DB_HOST = '192.168.1.81'  # 가상 인스턴스에서는 사설 IP
-DB_HOST = '133.186.251.70' # Local 환경에서는 공인 IP
+# DB_HOST = '사설IP'  # 가상 인스턴스에서는 사설 IP
+DB_HOST = '공인IP' # Local 환경에서는 공인 IP
 DB_PORT = 3306
-DB_USER = 'user'
-DB_PASSWORD = 'password123!'
-DB_NAME = 'review_analyzer_db'
+DB_USER = '유저'
+DB_PASSWORD = '비밀번호'
+DB_NAME = '데이터베이스'
 
 
 # --- 외부 API 키 설정 ---
-GOOGLE_API_KEY = 'AIzaSyAGi5p-oZ-dsyMyNYyjusN-ZCDpYuWW5TE'
+
+GOOGLE_API_KEY = 'API호출키'
