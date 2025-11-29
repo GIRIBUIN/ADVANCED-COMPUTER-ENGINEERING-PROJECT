@@ -56,7 +56,7 @@ def get_chatbot():
     """ 챗봇 인스턴스를 가져오거나, 없으면 새로 생성하여 반환합니다. (싱글턴 패턴) """
     global _chatbot_instance
     if _chatbot_instance is None:
-        _chatbot_instance = ChatBot(model="gemini-1.5-flash-latest", system_message=SYSTEM_MESSAGE)
+        _chatbot_instance = ChatBot(model="gemini-1.5-flash-latest", system_message=system_message)
         _chatbot_instance.init_app(current_app._get_current_object())
     return _chatbot_instance
 
