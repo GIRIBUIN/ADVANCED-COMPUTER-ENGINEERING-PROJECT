@@ -31,7 +31,7 @@ def analyze_reviews(link, keywords):
         tasks = [(link, rating, lock) for rating in crawl_module.TARGET_RATINGS]
 
         # 동시에 실행할 프로세스 수 결정 (CPU 코어 수와 작업 수 중 작은 값, 최대 4개로 제한)
-        num_processes = 2
+        num_processes = 5
 
         all_reviews = []
         with Pool(processes=num_processes) as pool:
@@ -52,13 +52,21 @@ def analyze_reviews(link, keywords):
         review_string = ' '.join(clean_df['내용'].astype(str).tolist())[:15000] 
         ai_response_json_str = ai_module.analyze_reviews(keywords, review_string)
 
+        print("DEBUG: ================= AI RAW RESPONSE START =================")
+        print(ai_response_json_str)
+        print("DEBUG: ================= AI RAW RESPONSE END ===================")
+
         try:
-            ai_data = json.loads(ai_response_json_str)
-            # 참고: 현재 크롤링 모듈은 상품명, 카테고리를 가져오지 않으므로 해당 로직은 제거됨
-            # ai_data['product_name'] = product_name 
+            clean_json_str = ai_response_json_str.replace("```json", "").replace("```", "").strip()
+            
+            ai_data = json.loads(clean_json_str)
+            print("LOG: AI response successfully parsed to JSON.")
+            
             final_analysis_text = json.dumps(ai_data, ensure_ascii=False)
-        except json.JSONDecodeError:
-            # AI가 JSON 형식이 아닌 일반 텍스트를 반환한 경우
+        except json.JSONDecodeError as e:
+            print(f"ERROR: JSON Parsing failed. Reason: {e}")
+            # 파싱 실패 시, 원본 텍스트를 그대로 넘김 (프론트에서 처리하도록)
+            # 하지만 위에서 replace 처리를 했으므로 성공 확률이 훨씬 높아짐
             final_analysis_text = ai_response_json_str
 
         # --- 최종 결과 데이터 생성 ---
@@ -71,15 +79,16 @@ def analyze_reviews(link, keywords):
             "url": link,
             "keywords": keywords,
             "analysis_text": final_analysis_text,
-            # 카테고리 정보는 DB 저장 시 '기타'로 기본 처리되므로 여기서는 제외
-            # "category_name": category_name 
         }
+        
+        # [DEBUG] 최종 반환 데이터 구조 확인
+        print(f"DEBUG: Final Result Data Keys: {result_data.keys()}")
 
         return {"status": "success", "data": result_data}
 
     except Exception as e:
         print(f"ERROR in analyze_reviews: {e}")
-        traceback.print_exc() # 개발 중 상세 오류 확인을 위해 스택 트레이스 출력
+        traceback.print_exc() 
         return {"status": "error", "message": str(e)}
 
 
@@ -96,6 +105,8 @@ def save_analysis_to_library(analysis_data, user_id):
     
     # 'category_name'이 분석 데이터에 없을 경우를 대비하여 기본값 '기타' 사용
     category_name = analysis_data.get('category_name', '기타')
+
+    print(f"LOG: Saving analysis {analysis_id} for user {user_id}") # 저장 로그 추가
 
     try:
         # 분석 결과가 DB에 없으면 새로 저장
