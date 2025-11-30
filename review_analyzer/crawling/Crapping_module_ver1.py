@@ -284,8 +284,28 @@ def scrape_single_rating(target_url, rating_name, lock):
         traceback.print_exc()
     finally:
         if driver:
-            try: driver.quit()
-            except: pass
+            # 1. 혹시 모를 상황 대비 프로세스 객체 확보
+            try:
+                proc = driver.service.process
+            except:
+                proc = None
+
+            # 2. 정상 종료 시도
+            try:
+                driver.quit()
+            except Exception:
+                # quit() 실패 시 무시하고 넘어감
+                pass
+            
+            # 3. (핵심) 프로세스가 여전히 살아있다면 OS 수준에서 강제 종료
+            if proc:
+                try:
+                    import os
+                    import signal
+                    # 해당 프로세스 ID(PID)를 찾아 강제로 죽임 (Windows/Linux/Mac 호환)
+                    os.kill(proc.pid, signal.SIGTERM) 
+                except:
+                    pass
     
     return collected[:MAX_REVIEWS_PER_RATING]
 
