@@ -250,7 +250,12 @@ function handleSaveAnalysis() {
     }
 
     const keywordChat = STATE.chatHistory.find(c => c.role === 'user' && c.content.includes('키워드:'));
-    const keyword = keywordChat ? keywordChat.content.split('키워드: ')[1].split(',')[0].trim() : '분석 키워드';
+    // const keyword = keywordChat ? keywordChat.content.split('키워드: ')[1].split(',')[0].trim() : '분석 키워드';
+    let keyword = '분석 키워드';
+    if (keywordChat) {
+        // '키워드: ' 접두사를 제거한 나머지 문자열 전체를 저장
+        keyword = keywordChat.content.split('키워드: ')[1].trim(); 
+    }
 
     const newReview = {
         id: Date.now(),
@@ -359,8 +364,7 @@ function getAnalysisCard(result) {
     const totalReviewCount = totalPositive + totalNegative;
     const neutralCount = Math.round(totalReviewCount * 0.2); // 중립
 
-    // 전체 비율 계산 (나누기 0 방지)
-    // const positivePercentage = totalReviewCount > 0 ? Math.round((totalPositive / totalReviewCount) * 100) : 0; // 사용 안 함
+    
     
     
     const overallAnalysisHtml = `
@@ -601,24 +605,26 @@ function renderSavedReviews() {
     if (!STATE.isAuthenticated) return;
 
     const savedReviewsHtml = STATE.savedData.length > 0 ? 
-        STATE.savedData.map(item => `
+        STATE.savedData.map(item => {
+            // 키워드 문자열을 쉼표와 공백으로 분리하여 태그로 변환
+            const keywordTags = item.keyword
+                .split(',')
+                .map(k => k.trim())
+                .filter(k => k.length > 0)
+                .map(k => `<span class="inline-block bg-indigo-100 text-indigo-800 text-xs font-medium mr-2 px-2.5 py-0.5 rounded-full">${k}</span>`)
+                .join('');
+
+            return `
             <div class="bg-white p-6 rounded-xl shadow-lg border border-gray-200 mb-6 relative">
                 <div class="flex justify-between items-center mb-4 pb-4 border-b">
-                    <h3 class="text-lg font-bold text-gray-900">${item.result.product.name}</h3>
+                    <h3 class="text-lg font-bold text-gray-900">${item.result.product_name || '제품명 없음'}</h3>
                     <div class="text-sm text-gray-500">${item.date}</div>
                 </div>
-                <p class="text-sm font-medium text-gray-600 mb-4">분석 키워드: <span class="text-indigo-600 font-semibold">${item.keyword}</span></p>
                 
-                <div class="space-y-2 mb-4">
-                    ${item.result.keywords.slice(0, 3).map(k => `
-                        <div class="flex items-center text-sm">
-                            <span class="w-2 h-2 rounded-full ${k.sentiment === 'positive' ? 'bg-green-500' : 'bg-red-500'} mr-2"></span>
-                            <span>${k.summary}</span>
-                        </div>
-                    `).join('')}
-                    ${item.result.keywords.length > 3 ? `<p class="text-xs text-gray-500 mt-1">+ ${item.result.keywords.length - 3}개 키워드 요약</p>` : ''}
+                <div class="text-sm font-medium text-gray-600 mb-4 flex items-center">
+                    <span class="mr-2">분석 키워드:</span>
+                    <div class="flex flex-wrap">${keywordTags}</div>
                 </div>
-
                 <div class="flex justify-end space-x-2 border-t pt-4">
                     <button onclick="viewSavedReviewDetails(${item.id})" class="px-3 py-1 bg-indigo-50 border border-indigo-200 text-indigo-600 rounded-lg text-sm font-medium hover:bg-indigo-100 transition-colors">
                         상세 보기
@@ -628,7 +634,8 @@ function renderSavedReviews() {
                     </button>
                 </div>
             </div>
-        `).join('')
+            `;
+        }).join('')
         : '<div class="text-center py-12 text-gray-500">아직 저장된 리뷰가 없습니다. 분석 결과를 저장해보세요!</div>';
 
     elements.contentContainer.innerHTML = `
