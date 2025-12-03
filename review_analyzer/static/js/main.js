@@ -654,9 +654,23 @@ function renderSavedReviews() {
     const savedReviewsHtml = STATE.savedData.length > 0 ?
         STATE.savedData.map(item => {
             let analysisData;
+            let keywordTags = '';
             try {
                 // 각 item의 analysis_text를 파싱하여 제품 이름 등을 가져옵니다.
                 analysisData = JSON.parse(item.analysis_text);
+
+                // keywords_analysis 배열에서 모든 키워드를 태그로 변환
+                const keywordsAnalysis = Array.isArray(analysisData.keywords_analysis) ? analysisData.keywords_analysis : [];
+
+                if (keywordsAnalysis.length > 0) {
+                    keywordTags = keywordsAnalysis
+                        .map(k => k.keyword.trim()) // 각 키워드 객체에서 'keyword' 이름만 추출
+                        .filter(k => k.length > 0)
+                        .map(k => `<span class="inline-block bg-indigo-100 text-indigo-800 text-xs font-medium mr-2 px-2.5 py-0.5 rounded-full">${k}</span>`)
+                        .join('');
+                } else {
+                    keywordTags = '<span class="text-gray-500">분석 키워드 없음</span>';
+                }
             } catch (e) {
                 analysisData = { product_name: "데이터 파싱 오류", keywords_analysis: [] };
             }
@@ -667,7 +681,12 @@ function renderSavedReviews() {
                     <h3 class="text-lg font-bold text-gray-900">${analysisData.product_name || "제품명 없음"}</h3>
                     <div class="text-sm text-gray-500">${new Date(item.analyzed_at).toLocaleDateString('ko-KR')}</div>
                 </div>
-                
+
+                <div class="text-sm font-medium text-gray-600 mb-4 flex flex-wrap items-start">
+                    <span class="mr-2 flex-shrink-0">분석 키워드:</span>
+                    <div class="flex flex-wrap mt-[-2px]">${keywordTags}</div>
+                </div>
+
                 <p class="text-sm font-medium text-gray-600 mb-4">
                   분석된 URL: <a href="${item.url}" target="_blank" class="text-indigo-600 hover:underline truncate block">${item.url}</a>
                 </p>
