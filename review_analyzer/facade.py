@@ -17,12 +17,14 @@ from multiprocessing import Pool, Manager
 import os
 import json
 import traceback # 오류 로깅을 위해 추가
+# import re # 텍스트 마이닝(데이터 전처리)
 
 def analyze_reviews(link, keywords):
     """
     주어진 URL과 키워드로 리뷰를 분석하는 전체 과정을 수행합니다.
     (병렬 크롤링 -> 데이터 취합 -> AI 분석)
     """
+    print(keywords)
     try:
         # --- 크롤링 ---
         print("LOG: Starting parallel crawling...")
@@ -49,7 +51,26 @@ def analyze_reviews(link, keywords):
              raise Exception("수집된 리뷰 데이터에 '내용' 컬럼이 없습니다.")
              
         clean_df = temp_df.dropna(subset=['내용'])
-        review_string = ' '.join(clean_df['내용'].astype(str).tolist())[:15000] 
+        review_string = ' '.join(clean_df['내용'].astype(str).tolist())[:15000]
+        # print(review_string, len(review_string))
+        # ----------- 키워드 텍스트 마이닝(review_string을 그대로 ai에 요청 시 too may request 발생 가능) -------------
+        # target_keywords = keywords
+        # sep_sentences = re.split(r'[.?!]\s*', review_string)
+        # extracted_sentences = []
+        # for sentence in sep_sentences:
+        #     sentence = sentence.strip()
+        #     if not sentence:
+        #         continue
+
+        #     for keyword in target_keywords:
+        #         if keyword in sentence:
+        #             extracted_sentences.append(sentence)
+        #             break
+        #
+        # final_string = " ".join(extracted_sentence)
+        # print(extracted_sentences, len(extracted_sentences))
+        # ------------ review_string 전처리 끝 -------------
+        # ai_response_json_str = ai_module.analyze_reviews(keywords, extracted_sentences)
         ai_response_json_str = ai_module.analyze_reviews(keywords, review_string)
 
         print("DEBUG: ================= AI RAW RESPONSE START =================")
