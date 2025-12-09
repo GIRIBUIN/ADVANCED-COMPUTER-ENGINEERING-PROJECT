@@ -437,7 +437,7 @@ function getAnalysisCard(dbResult) {
             <h2 class="text-xl font-bold text-gray-900 mb-4 pb-2 border-b">📝 감정 분석</h2>
             <div class="flex space-x-4 mb-6 text-center">
                 <div class="flex-1 p-4 rounded-lg bg-green-50"><div class="text-2xl font-extrabold text-green-700">${totalPositive}</div><div class="text-sm font-medium text-green-600">긍정적 리뷰</div></div>
-                <div class="flex-1 p-4 rounded-lg bg-yellow-50"><div class="text-2xl font-extrabold text-yellow-700">${neutralCount}</div><div class="text-sm font-medium text-yellow-600">중립적 리뷰</div></div>
+                
                 <div class="flex-1 p-4 rounded-lg bg-red-50"><div class="text-2xl font-extrabold text-red-700">${totalNegative}</div><div class="text-sm font-medium text-red-600">부정적 리뷰</div></div>
             </div>
             <div class="p-4 bg-indigo-50 rounded-lg">
