@@ -86,20 +86,38 @@ def get_my_library():
 
 @bp.route('/api/library/<string:analysis_id>', methods=['DELETE'])
 def delete_from_my_library(analysis_id):
-    """ 라이브러리 항목 삭제 API: 특정 분석 결과를 라이브러리에서 삭제합니다. """
+    """ 라이브러리 항목 삭제 API """
     user_id = session.get('user_id')
     if not user_id:
         return jsonify({"status": "error", "message": "로그인이 필요합니다."}), 401
     
+    db_conn = None
     try:
+        db_conn = db.get_db()
+        
+        # 삭제 실행
         rows_deleted = db.delete_from_library(user_id, analysis_id)
+        
+        # 명시적 커밋 (이 시점에 오류가 없으면 확정)
+        db_conn.commit()
         
         if rows_deleted > 0:
             return jsonify({"status": "success", "message": "삭제되었습니다."}), 200
         else:
             return jsonify({"status": "error", "message": "삭제할 항목을 찾지 못했거나 권한이 없습니다."}), 404
+            
     except Exception as e:
+        # 오류 발생 시 롤백
+        if db_conn:
+            try:
+                db_conn.rollback()
+            except:
+                pass
+        
         current_app.logger.error(f"라이브러리 삭제 중 오류 발생: {e}")
+        import traceback
+        current_app.logger.error(traceback.format_exc())
+        
         return jsonify({"status": "error", "message": "데이터를 삭제하는 중 오류가 발생했습니다."}), 500
 
 # 참고: 사용자 인증 관련 라우트(회원가입, 로그인 등)는 auth.py로 분리하는 것이 좋습니다.
