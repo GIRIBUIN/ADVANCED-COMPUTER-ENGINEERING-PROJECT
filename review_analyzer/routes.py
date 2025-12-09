@@ -48,6 +48,24 @@ def analyze_endpoint():
     return jsonify(result), 200
 
 
+@bp.route('/api/recommend-products', methods=['POST'])
+def recommend_products_endpoint():
+    """ 유사 상품 추천 API: 상품 URL을 받아 유사 상품 링크를 반환합니다. """
+    data = request.get_json()
+    url = data.get('url')
+
+    if not url:
+        return jsonify({"status": "error", "message": "url은 필수 항목입니다."}), 400
+
+    # 핵심 로직은 facade 모듈에 위임합니다.
+    result = facade.get_related_product_links(url)
+
+    if result.get('status') == 'error':
+        return jsonify(result), 500
+    
+    return jsonify(result), 200
+
+
 @bp.route('/api/library', methods=['POST'])
 def save_to_library_endpoint():
     """ 라이브러리 저장 API: 분석 결과를 사용자의 라이브러리에 저장합니다. """

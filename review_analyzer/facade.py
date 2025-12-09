@@ -7,6 +7,7 @@
 
 # 현재 패키지 내의 모듈들을 상대 경로로 임포트합니다.
 from .crawling import Crapping_module_ver1 as crawl_module
+from .crawling import Recommend_Product as recommend_module
 from .ai import analyzer as ai_module
 from .db import db
 
@@ -53,7 +54,7 @@ def analyze_reviews(link, keywords):
         clean_df = temp_df.dropna(subset=['내용'])
         review_string = ' '.join(clean_df['내용'].astype(str).tolist())[:15000]
         print(review_string, len(review_string))
-        # ----------- 키워드 텍스트 마이닝(review_string을 그대로 ai에 요청 시 too may request 발생 가능) -------------
+        # ----------- 키워드 텍스트 마이닝(키워드 포함 문장 추출) -------------
         target_keywords = keywords
         sep_sentences = re.split(r'[.?!]\s*', review_string)
         extracted_sentences = []
@@ -149,3 +150,22 @@ def save_analysis_to_library(analysis_data, user_id):
         print(f"ERROR in save_analysis_to_library: {e}")
         traceback.print_exc()
         return {"status": "error", "message": "라이브러리 저장 중 오류가 발생했습니다."}
+
+
+def get_related_product_links(url):
+    """
+    주어진 상품 URL에서 유사 상품 링크를 수집합니다.
+    """
+    try:
+        print(f"LOG: Starting related product link collection for URL: {url[:50]}...")
+        links = recommend_module.get_related_product_links(url)
+        
+        if not links:
+            return {"status": "error", "message": "유사 상품 링크를 찾을 수 없습니다."}
+        
+        return {"status": "success", "data": {"links": links}}
+        
+    except Exception as e:
+        print(f"ERROR in get_related_product_links: {e}")
+        traceback.print_exc()
+        return {"status": "error", "message": f"유사 상품 링크 수집 중 오류가 발생했습니다: {str(e)}"}

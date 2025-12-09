@@ -25,7 +25,7 @@ def setup_driver():
     options.add_argument("--start-maximized")
     
     try:
-        driver = uc.Chrome(options=options, version_main=141)
+        driver = uc.Chrome(options=options, version_main=143)
     except Exception as e:
         print(f"[드라이버 로드 오류] {e}")
         print("version_main=141을 제거하고 자동 감지 모드로 다시 시도합니다.")

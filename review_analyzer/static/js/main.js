@@ -7,6 +7,7 @@ const STATE = {
     analysisResult: null,
     savedData: [],
     tempUrl: null,
+    relatedProducts: null, // 유사 상품 링크 저장
 };
 
 // DOM 요소 캐시
@@ -251,6 +252,7 @@ async function runAnalysis(link, keyword) {
 
         if (response.ok) {
             STATE.analysisResult = data.data;
+            STATE.relatedProducts = null; // 새로운 분석 시작 시 유사 상품 초기화
             pushChat('system', `__ANALYSIS_RESULT_CARD__`);
         } else {
             const errorMessage = data.message || "알 수 없는 서버 오류가 발생했습니다.";
@@ -338,6 +340,58 @@ async function handleDeleteReview(analysisId) {
         console.error('삭제 중 오류:', error);
         showModal(getMessageModal('오류', "서버와 통신 중 오류가 발생했습니다."));
     }
+}
+
+// 유사 상품 추천 수집
+async function fetchRelatedProducts(url) {
+    // 로딩 메시지 추가
+    const loadingMsgIndex = STATE.chatHistory.length;
+    pushChat('system', '🔍 유사 상품을 찾는 중입니다. 잠시만 기다려주세요...');
+    
+    try {
+        const response = await fetch('/api/recommend-products', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ url: url }),
+        });
+
+        const data = await response.json();
+
+        if (response.ok && data.status === 'success') {
+            STATE.relatedProducts = data.data.links;
+            // 로딩 메시지 제거
+            STATE.chatHistory = STATE.chatHistory.filter((msg, idx) => idx !== loadingMsgIndex);
+            // 채팅 히스토리에서 분석 결과 카드 메시지를 찾아 업데이트
+            renderChatArea();
+        } else {
+            // 로딩 메시지를 오류 메시지로 교체
+            STATE.chatHistory[loadingMsgIndex].content = `🚫 유사 상품 수집 중 오류가 발생했습니다: ${data.message || '알 수 없는 오류'}`;
+            renderChatArea();
+        }
+    } catch (error) {
+        console.error("유사 상품 수집 중 오류:", error);
+        // 로딩 메시지를 오류 메시지로 교체
+        if (STATE.chatHistory[loadingMsgIndex]) {
+            STATE.chatHistory[loadingMsgIndex].content = `🚫 네트워크 연결 또는 유사 상품 수집 중 오류가 발생했습니다: ${error.message}`;
+            renderChatArea();
+        }
+    }
+}
+
+// 유사 상품 추천 버튼 핸들러
+async function handleRecommendProducts() {
+    if (!STATE.analysisResult || !STATE.analysisResult.url) {
+        pushChat('system', '🚫 분석 결과 URL이 없어 유사 상품을 찾을 수 없습니다.');
+        return;
+    }
+    
+    await fetchRelatedProducts(STATE.analysisResult.url);
+}
+
+// 유사 상품 추천 건너뛰기
+function skipRecommendProducts() {
+    STATE.relatedProducts = []; // 빈 배열로 설정하여 더 이상 버튼이 표시되지 않도록 함
+    renderChatArea();
 }
 
 // --- 템플릿 HTML 생성 함수 ---
@@ -477,6 +531,60 @@ function getAnalysisCard(dbResult) {
         `;
     }).join('');
 
+    // 유사 상품 추천 섹션 HTML 생성
+    let relatedProductsHtml = '';
+    if (isCurrentAnalysis && STATE.relatedProducts === null) {
+        // 유사 상품을 아직 수집하지 않은 경우 예/아니오 버튼 표시
+        relatedProductsHtml = `
+            <div class="mt-8 pt-6 border-t bg-white p-6 rounded-lg shadow-md">
+                <h3 class="text-lg font-bold text-gray-900 mb-4">💡 유사 상품 추천</h3>
+                <p class="text-sm text-gray-600 mb-4">이 제품과 유사한 상품을 추천받으시겠습니까?</p>
+                <div class="flex gap-3 justify-center">
+                    <button onclick="handleRecommendProducts()" class="px-6 py-2 bg-indigo-600 text-white rounded-lg font-semibold hover:bg-indigo-700 transition-colors duration-200 shadow-md">
+                        예
+                    </button>
+                    <button onclick="skipRecommendProducts()" class="px-6 py-2 bg-gray-200 text-gray-700 rounded-lg font-semibold hover:bg-gray-300 transition-colors duration-200">
+                        아니오
+                    </button>
+                </div>
+            </div>
+        `;
+    } else if (isCurrentAnalysis && STATE.relatedProducts && STATE.relatedProducts.length > 0) {
+        // 유사 상품 링크가 있는 경우 표시
+        const productsList = STATE.relatedProducts.map((link, index) => `
+            <div class="p-4 bg-gray-50 rounded-lg border border-gray-200 hover:bg-gray-100 transition-colors">
+                <div class="flex items-center justify-between">
+                    <div class="flex-1">
+                        <div class="text-sm font-semibold text-gray-700 mb-1">유사 상품 ${index + 1}</div>
+                        <a href="${link}" target="_blank" class="text-sm text-indigo-600 hover:text-indigo-800 hover:underline break-all">
+                            ${link}
+                        </a>
+                    </div>
+                    <a href="${link}" target="_blank" class="ml-4 px-3 py-1 bg-indigo-600 text-white text-xs rounded-lg hover:bg-indigo-700 transition-colors">
+                        열기
+                    </a>
+                </div>
+            </div>
+        `).join('');
+        
+        relatedProductsHtml = `
+            <div class="mt-8 pt-6 border-t bg-white p-6 rounded-lg shadow-md">
+                <h3 class="text-lg font-bold text-gray-900 mb-4">💡 추천 유사 상품</h3>
+                <div class="space-y-3">
+                    ${productsList}
+                </div>
+            </div>
+        `;
+    } else if (isCurrentAnalysis && STATE.relatedProducts && STATE.relatedProducts.length === 0) {
+        // 유사 상품을 찾지 못한 경우
+        relatedProductsHtml = `
+            <div class="mt-8 pt-6 border-t bg-white p-6 rounded-lg shadow-md">
+                <h3 class="text-lg font-bold text-gray-900 mb-4">💡 유사 상품 추천</h3>
+                <p class="text-sm text-gray-500">유사 상품을 찾지 못했습니다.</p>
+            </div>
+        `;
+    }
+
     return `
         <div class="flex flex-col w-full max-w-4xl mx-auto">
             <div class="text-center mb-6">
@@ -487,6 +595,7 @@ function getAnalysisCard(dbResult) {
                 <h2 class="text-xl font-bold text-gray-900 mb-4 pb-2 border-b">🔍 키워드별 상세 분석</h2>
                 ${keywordsAnalysisHtml}
             </div>
+            ${relatedProductsHtml}
             ${isCurrentAnalysis ?
             `<div class="mt-8 pt-6 border-t text-center sticky bottom-0 bg-white p-4 shadow-xl rounded-lg">
                     <button onclick="handleSaveAnalysis()" class="flex items-center justify-center w-full max-w-md mx-auto bg-indigo-600 text-white p-3 rounded-lg font-semibold hover:bg-indigo-700 transition-colors duration-200 shadow-md">
