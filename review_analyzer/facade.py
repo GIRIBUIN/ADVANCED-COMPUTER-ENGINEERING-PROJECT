@@ -67,10 +67,10 @@ def analyze_reviews(link, keywords):
         #             extracted_sentences.append(sentence)
         #             break
         #
-        # final_string = " ".join(extracted_sentence)
-        # print(extracted_sentences, len(extracted_sentences))
+        # final_string = " ".join(extracted_sentences)
+        # print(extracted_sentences, len(fianl_string))
         # ------------ review_string 전처리 끝 -------------
-        # ai_response_json_str = ai_module.analyze_reviews(keywords, extracted_sentences)
+        # ai_response_json_str = ai_module.analyze_reviews(keywords, final_string)
         ai_response_json_str = ai_module.analyze_reviews(keywords, review_string)
 
         print("DEBUG: ================= AI RAW RESPONSE START =================")
