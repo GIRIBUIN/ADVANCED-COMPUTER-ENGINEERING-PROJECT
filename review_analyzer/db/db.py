@@ -187,12 +187,29 @@ def get_analyses_by_ids(analysis_id_list):
 
 
 def delete_from_library(user_id, analysis_id):
-    """ 라이브러리에서 특정 분석 결과를 삭제합니다. """
+    """ 
+    라이브러리에서 특정 분석 결과를 삭제합니다.
+    커밋은 호출자(routes.py)에서 처리합니다.
+    
+    Args:
+        user_id: 사용자 ID
+        analysis_id: 분석 결과 ID
+        
+    Returns:
+        int: 삭제된 행의 개수
+    """
     db = get_db()
     cursor = db.cursor()
-    sql = "DELETE FROM LIBRARY WHERE user_id = %s AND analysis_id = %s"
-    cursor.execute(sql, (user_id, analysis_id))
-    db.commit()
+    
+    try:
+        sql = "DELETE FROM LIBRARY WHERE user_id = %s AND analysis_id = %s"
+        cursor.execute(sql, (user_id, analysis_id))
+        
+        rows_deleted = cursor.rowcount
+        return rows_deleted
+        
+    finally:
+        cursor.close()
 
 
 def does_analysis_exist(analysis_id):
