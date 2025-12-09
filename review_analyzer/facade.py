@@ -17,7 +17,7 @@ from multiprocessing import Pool, Manager
 import os
 import json
 import traceback # 오류 로깅을 위해 추가
-# import re # 텍스트 마이닝(데이터 전처리)
+import re # 텍스트 마이닝(데이터 전처리)
 
 def analyze_reviews(link, keywords):
     """
@@ -52,26 +52,26 @@ def analyze_reviews(link, keywords):
              
         clean_df = temp_df.dropna(subset=['내용'])
         review_string = ' '.join(clean_df['내용'].astype(str).tolist())[:15000]
-        # print(review_string, len(review_string))
+        print(review_string, len(review_string))
         # ----------- 키워드 텍스트 마이닝(review_string을 그대로 ai에 요청 시 too may request 발생 가능) -------------
-        # target_keywords = keywords
-        # sep_sentences = re.split(r'[.?!]\s*', review_string)
-        # extracted_sentences = []
-        # for sentence in sep_sentences:
-        #     sentence = sentence.strip()
-        #     if not sentence:
-        #         continue
+        target_keywords = keywords
+        sep_sentences = re.split(r'[.?!]\s*', review_string)
+        extracted_sentences = []
+        for sentence in sep_sentences:
+            sentence = sentence.strip()
+            if not sentence:
+                continue
 
-        #     for keyword in target_keywords:
-        #         if keyword in sentence:
-        #             extracted_sentences.append(sentence)
-        #             break
-        #
-        # final_string = " ".join(extracted_sentence)
-        # print(extracted_sentences, len(extracted_sentences))
+            for keyword in target_keywords:
+                if keyword in sentence:
+                    extracted_sentences.append(sentence)
+                    break
+        
+        final_string = " ".join(extracted_sentences)
+        print(final_string, len(final_string))
         # ------------ review_string 전처리 끝 -------------
-        # ai_response_json_str = ai_module.analyze_reviews(keywords, extracted_sentences)
-        ai_response_json_str = ai_module.analyze_reviews(keywords, review_string)
+        ai_response_json_str = ai_module.analyze_reviews(keywords, final_string)
+        # ai_response_json_str = ai_module.analyze_reviews(keywords, review_string)
 
         print("DEBUG: ================= AI RAW RESPONSE START =================")
         print(ai_response_json_str)

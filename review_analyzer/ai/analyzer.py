@@ -7,7 +7,7 @@ ChatBot 모듈을 사용하여 리뷰 텍스트에 대한 AI 분석을 수행하
 
 from .chatbot import ChatBot
 from flask import current_app
-# system_message, ai에 프롬프트에 키워드와 리뷰 데이터 어떻게 넣을지 고민
+
 system_message = """
 [지시사항]
 당신은 사용자가 입력한 키워드를 중심으로 제품 리뷰를 분석하고 요약하는 전문 분석가입니다.
@@ -56,7 +56,7 @@ def get_chatbot():
     """ 챗봇 인스턴스를 가져오거나, 없으면 새로 생성하여 반환합니다. (싱글턴 패턴) """
     global _chatbot_instance
     if _chatbot_instance is None:
-        _chatbot_instance = ChatBot(model="gemini-2.0-flash", system_message=system_message)
+        _chatbot_instance = ChatBot(model="gemini-2.5-flash", system_message=system_message)
         _chatbot_instance.init_app(current_app._get_current_object())
     return _chatbot_instance
 
@@ -67,3 +67,4 @@ def analyze_reviews(keywords, review_data):
     prompt = f"keywords: {keywords}\nreview data: {review_data}"
     ai_response = chatbot.get_response(user_input=prompt)
     return ai_response
+    
