@@ -28,4 +28,5 @@ DB_NAME = 'review_analyzer_db'
 
 # --- 외부 API 키 설정 ---
 
-GOOGLE_API_KEY = 'AIzaSyCPYmo90hQsCZ5iSrqu6tzmu6m4ecqDACo'
+GOOGLE_API_KEY = 'ENTER_YOUR_API_KEY'
+
