@@ -314,22 +314,29 @@ async function loadSavedReviews() {
 }
 
 async function handleDeleteReview(analysisId) {
-    if (confirm("정말로 이 저장된 리뷰를 삭제하시겠습니까?")) {
-        try {
-            const response = await fetch(`/api/library/${analysisId}`, { method: 'DELETE' });
-            const data = await response.json();
+    if (!confirm("정말로 이 저장된 리뷰를 삭제하시겠습니까?")) {
+        return;
+    }
 
-            if (response.ok) {
-                // 상태에서 해당 항목 제거하고 UI 업데이트
-                STATE.savedData = STATE.savedData.filter(item => item.analysis_id !== analysisId);
-                updateUI();
-                showModal(getMessageModal('삭제 완료', '저장된 리뷰가 성공적으로 삭제되었습니다.'));
-            } else {
-                showModal(getMessageModal('삭제 실패', data.message || "삭제에 실패했습니다."));
-            }
-        } catch (error) {
-            showModal(getMessageModal('오류', "서버와 통신 중 오류가 발생했습니다."));
+    try {
+        const response = await fetch(`/api/library/${analysisId}`, { 
+            method: 'DELETE' 
+        });
+        
+        const data = await response.json();
+
+        if (response.ok) {
+            // 서버에서 최신 라이브러리 목록을 다시 가져옴 (동기화 보장)
+            await loadSavedReviews();
+            
+            // 성공 모달 표시
+            showModal(getMessageModal('삭제 완료', '저장된 리뷰가 성공적으로 삭제되었습니다.'));
+        } else {
+            showModal(getMessageModal('삭제 실패', data.message || "삭제에 실패했습니다."));
         }
+    } catch (error) {
+        console.error('삭제 중 오류:', error);
+        showModal(getMessageModal('오류', "서버와 통신 중 오류가 발생했습니다."));
     }
 }
 
