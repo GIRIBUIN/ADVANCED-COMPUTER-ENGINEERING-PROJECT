@@ -72,7 +72,7 @@ def analyze_reviews(link, keywords):
         # ------------ review_string 전처리 끝 -------------
         ai_response_json_str = ai_module.analyze_reviews(keywords, final_string)
         # ai_response_json_str = ai_module.analyze_reviews(keywords, review_string)
-
+       
         print("DEBUG: ================= AI RAW RESPONSE START =================")
         print(ai_response_json_str)
         print("DEBUG: ================= AI RAW RESPONSE END ===================")
