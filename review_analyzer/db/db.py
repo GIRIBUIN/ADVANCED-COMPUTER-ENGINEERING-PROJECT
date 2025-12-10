@@ -7,6 +7,7 @@
 
 import pymysql
 from flask import current_app, g
+import json
 
 def get_db():
     """
@@ -96,7 +97,10 @@ def save_analysis(analysis_id, url, analysis_text, category_id, recommended_info
     """
     db = get_db()
     cursor = db.cursor()
+    
+    # 리스트나 딕셔너리를 JSON 문자열로 변환 (None이면 NULL로 저장)
     recommended_info_json = json.dumps(recommended_info, ensure_ascii=False) if recommended_info else None
+    
     sql = """
         INSERT INTO ANALYSES (analysis_id, url, analysis_text, category_id, recommended_info) 
         VALUES (%s, %s, %s, %s, %s)
@@ -185,6 +189,7 @@ def get_analyses_by_ids(analysis_id_list):
     db = get_db()
     cursor = db.cursor()
     placeholders = ', '.join(['%s'] * len(analysis_id_list))
+    
     # SELECT 절에 recommended_info 추가
     sql = f"SELECT analysis_id, url, analysis_text, category_id, analyzed_at, recommended_info FROM ANALYSES WHERE analysis_id IN ({placeholders})"
     cursor.execute(sql, tuple(analysis_id_list))
@@ -224,3 +229,4 @@ def does_analysis_exist(analysis_id):
     sql = "SELECT analysis_id FROM ANALYSES WHERE analysis_id = %s"
     cursor.execute(sql, (analysis_id,))
     return cursor.fetchone()
+    
