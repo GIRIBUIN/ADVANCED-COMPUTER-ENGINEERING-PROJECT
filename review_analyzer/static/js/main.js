@@ -223,29 +223,42 @@ async function handleLogout() {
         // 로그아웃 오류는 사용자에게 굳이 알리지 않고 조용히 처리하거나 콘솔에만 남김
     }
 }
+// 1. "계정 삭제" 버튼 클릭 시 실행 (모달 띄우기)
+function handleDeleteAccount() {
+    showModal(getDeleteAccountConfirmModal());
+}
 
-async function handleDeleteAccount() {
-    if (!confirm("정말로 계정을 삭제하시겠습니까? 저장된 모든 리뷰 데이터가 사라집니다.")) {
-        return;
-    }
-
+// 2. 모달에서 "삭제하기" 버튼 클릭 시 실행 (실제 삭제 처리)
+async function processDeleteAccount() {
+    // 로딩 중임을 표시하기 위해 버튼 텍스트 변경 등을 할 수 있으나, 여기서는 생략하고 바로 요청
+    
     try {
         const response = await fetch('/api/user', { method: 'DELETE' });
         const data = await response.json();
 
         if (response.ok) {
-            alert("계정이 삭제되었습니다. 이용해 주셔서 감사합니다.");
+            // 성공 시: 상태 초기화 (로그아웃 로직과 동일하게 처리)
             STATE.isAuthenticated = false;
             STATE.user = { user_id: null, user_name: null };
-            changeScreen('main');
+            STATE.chatHistory = [];
+            STATE.analysisResult = null;
+            STATE.savedData = [];
+            
+            // 화면을 메인(currentAnalysis)으로 전환하여 초기 상태 보여줌
+            changeScreen('currentAnalysis');
+
+            // 성공 메시지 모달 띄우기 (alert 대신)
+            showModal(getMessageModal('삭제 완료', '계정이 삭제되었습니다. 이용해 주셔서 감사합니다.'));
         } else {
-            alert(data.message || "계정 삭제에 실패했습니다.");
+            // 실패 시: 에러 메시지 모달
+            showModal(getMessageModal('삭제 실패', data.message || "계정 삭제에 실패했습니다."));
         }
     } catch (error) {
         console.error("계정 삭제 중 오류:", error);
-        alert("서버와 통신 중 오류가 발생했습니다.");
+        showModal(getMessageModal('오류', "서버와 통신 중 오류가 발생했습니다."));
     }
 }
+
 
 
 
@@ -502,6 +515,30 @@ function getLoginRequiredModal() {
           <h3 class="text-lg font-bold mb-2">로그인 필수</h3>
           <p class="text-sm text-gray-600 mb-4">저장된 리뷰는 로그인한 사용자만 접근할 수 있습니다.</p>
           <button onclick="closeModal(); changeScreen('login');" class="bg-indigo-600 text-white p-2 rounded-lg font-semibold w-full hover:bg-indigo-700 transition-colors">로그인 하러 가기</button>
+      </div>
+  `;
+}
+function getDeleteAccountConfirmModal() {
+    return `
+      <div class="bg-white p-6 rounded-xl shadow-2xl w-full max-w-sm text-center">
+          <div class="text-red-500 mb-4">
+              <svg class="w-12 h-12 mx-auto" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"></path>
+              </svg>
+          </div>
+          <h3 class="text-lg font-bold mb-2 text-gray-900">계정 삭제</h3>
+          <p class="text-sm text-gray-600 mb-6">
+              정말로 계정을 삭제하시겠습니까?<br>
+              <span class="text-red-500 font-medium">저장된 모든 리뷰 데이터가 영구적으로 삭제됩니다.</span>
+          </p>
+          <div class="flex gap-3 justify-center">
+              <button onclick="processDeleteAccount()" class="flex-1 bg-red-500 text-white p-3 rounded-lg font-semibold hover:bg-red-600 transition-colors shadow-md">
+                  삭제하기
+              </button>
+              <button onclick="closeModal()" class="flex-1 bg-gray-200 text-gray-700 p-3 rounded-lg font-semibold hover:bg-gray-300 transition-colors">
+                  취소
+              </button>
+          </div>
       </div>
   `;
 }
