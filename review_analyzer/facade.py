@@ -117,6 +117,7 @@ def analyze_reviews(link, keywords):
 def save_analysis_to_library(analysis_data, user_id):
     """
     분석된 결과를 데이터베이스의 라이브러리에 저장합니다.
+    유사 상품 링크가 있으면 analysis_text JSON에 포함하여 저장합니다.
     """
     db_conn = db.get_db()
     
@@ -124,19 +125,37 @@ def save_analysis_to_library(analysis_data, user_id):
     url = analysis_data.get('url')
     analysis_text = analysis_data.get('analysis_text')
     keywords = analysis_data.get('keywords')
+    related_products = analysis_data.get('related_products')  # 유사 상품 링크 리스트 (없으면 None)
     
     # 'category_name'이 분석 데이터에 없을 경우를 대비하여 기본값 '기타' 사용
     category_name = analysis_data.get('category_name', '기타')
 
-    print(f"LOG: Saving analysis {analysis_id} for user {user_id}") # 저장 로그 추가
+    print(f"LOG: Saving analysis {analysis_id} for user {user_id}")
+    if related_products:
+        print(f"LOG: Saving {len(related_products)} related product links")
 
     try:
+        # 유사 상품 링크가 있으면 analysis_text JSON에 포함
+        if related_products:
+            try:
+                # analysis_text를 파싱하여 유사 상품 링크 추가
+                analysis_json = json.loads(analysis_text)
+                analysis_json['related_products'] = related_products
+                analysis_text = json.dumps(analysis_json, ensure_ascii=False)
+            except json.JSONDecodeError:
+                # JSON 파싱 실패 시, 기존 텍스트에 추가 정보를 포함시키는 방식
+                # 하지만 이 경우는 거의 발생하지 않을 것으로 예상
+                print("WARNING: Could not parse analysis_text as JSON. Related products not saved.")
+        
         # 분석 결과가 DB에 없으면 새로 저장
         if not db.does_analysis_exist(analysis_id):
             category_id = db.find_or_create_category(category_name)
             keyword_ids = db.find_or_create_keywords(keywords)
             db.save_analysis(analysis_id, url, analysis_text, category_id)
             db.link_analysis_to_keywords(analysis_id, keyword_ids)
+        else:
+            # 기존 분석 결과가 있으면 analysis_text 업데이트 (유사 상품 링크 포함)
+            db.update_analysis_text(analysis_id, analysis_text)
 
         # 사용자의 라이브러리에 연결
         if not db.find_library_item(user_id, analysis_id):

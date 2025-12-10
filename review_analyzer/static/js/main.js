@@ -8,6 +8,7 @@ const STATE = {
     savedData: [],
     tempUrl: null,
     relatedProducts: null, // 유사 상품 링크 저장
+    recommendChoice: null, // 유사 상품 추천 선택 상태: null(미선택), 'yes', 'no'
 };
 
 // DOM 요소 캐시
@@ -253,6 +254,7 @@ async function runAnalysis(link, keyword) {
         if (response.ok) {
             STATE.analysisResult = data.data;
             STATE.relatedProducts = null; // 새로운 분석 시작 시 유사 상품 초기화
+            STATE.recommendChoice = null; // 새로운 분석 시작 시 선택 상태 초기화
             pushChat('system', `__ANALYSIS_RESULT_CARD__`);
         } else {
             const errorMessage = data.message || "알 수 없는 서버 오류가 발생했습니다.";
@@ -279,12 +281,22 @@ async function handleSaveAnalysis() {
         showModal(getMessageModal('저장 불가', '분석 결과가 없습니다. 먼저 분석을 완료해 주세요.'));
         return;
     }
+    if (STATE.recommendChoice === null) {
+        showModal(getMessageModal('저장 불가', '유사 상품 추천을 선택해주세요.'));
+        return;
+    }
+
+    // 저장 데이터 구성: 유사 상품 추천을 선택한 경우에만 related_products 포함
+    const saveData = {
+        ...STATE.analysisResult,
+        related_products: STATE.recommendChoice === 'yes' ? (STATE.relatedProducts || []) : null
+    };
 
     try {
         const response = await fetch('/api/library', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify(STATE.analysisResult), // 분석 결과 객체 전체를 전송
+            body: JSON.stringify(saveData), // 분석 결과 + 유사 상품 링크(선택 시)
         });
 
         const data = await response.json();
@@ -385,12 +397,25 @@ async function handleRecommendProducts() {
         return;
     }
     
+    STATE.recommendChoice = 'yes';
+    await fetchRelatedProducts(STATE.analysisResult.url);
+}
+
+// 유사 상품 추천 버튼 핸들러
+async function handleRecommendProducts() {
+    if (!STATE.analysisResult || !STATE.analysisResult.url) {
+        pushChat('system', '🚫 분석 결과 URL이 없어 유사 상품을 찾을 수 없습니다.');
+        return;
+    }
+    
+    STATE.recommendChoice = 'yes';
     await fetchRelatedProducts(STATE.analysisResult.url);
 }
 
 // 유사 상품 추천 건너뛰기
 function skipRecommendProducts() {
-    STATE.relatedProducts = []; // 빈 배열로 설정하여 더 이상 버튼이 표시되지 않도록 함
+    STATE.recommendChoice = 'no';
+    STATE.relatedProducts = null; // 아니오 선택 시 링크 초기화
     renderChatArea();
 }
 
@@ -531,58 +556,98 @@ function getAnalysisCard(dbResult) {
         `;
     }).join('');
 
+    // 저장된 데이터에서 유사 상품 링크 추출 (라이브러리에서 불러올 때)
+    const savedRelatedProducts = analysisData.related_products || null;
+    
     // 유사 상품 추천 섹션 HTML 생성
     let relatedProductsHtml = '';
-    if (isCurrentAnalysis && STATE.relatedProducts === null) {
-        // 유사 상품을 아직 수집하지 않은 경우 예/아니오 버튼 표시
-        relatedProductsHtml = `
-            <div class="mt-8 pt-6 border-t bg-white p-6 rounded-lg shadow-md">
-                <h3 class="text-lg font-bold text-gray-900 mb-4">💡 유사 상품 추천</h3>
-                <p class="text-sm text-gray-600 mb-4">이 제품과 유사한 상품을 추천받으시겠습니까?</p>
-                <div class="flex gap-3 justify-center">
-                    <button onclick="handleRecommendProducts()" class="px-6 py-2 bg-indigo-600 text-white rounded-lg font-semibold hover:bg-indigo-700 transition-colors duration-200 shadow-md">
-                        예
-                    </button>
-                    <button onclick="skipRecommendProducts()" class="px-6 py-2 bg-gray-200 text-gray-700 rounded-lg font-semibold hover:bg-gray-300 transition-colors duration-200">
-                        아니오
-                    </button>
+    
+    if (isCurrentAnalysis) {
+        // 현재 분석 중인 경우
+        if (STATE.recommendChoice === null) {
+            // 유사 상품 추천을 아직 선택하지 않은 경우 예/아니오 버튼 표시
+            relatedProductsHtml = `
+                <div class="mt-8 pt-6 border-t bg-white p-6 rounded-lg shadow-md">
+                    <h3 class="text-lg font-bold text-gray-900 mb-4">💡 유사 상품 추천</h3>
+                    <p class="text-sm text-gray-600 mb-4">이 제품과 유사한 상품을 추천받으시겠습니까?</p>
+                    <div class="flex gap-3 justify-center">
+                        <button onclick="handleRecommendProducts()" class="px-6 py-2 bg-indigo-600 text-white rounded-lg font-semibold hover:bg-indigo-700 transition-colors duration-200 shadow-md">
+                            예
+                        </button>
+                        <button onclick="skipRecommendProducts()" class="px-6 py-2 bg-gray-200 text-gray-700 rounded-lg font-semibold hover:bg-gray-300 transition-colors duration-200">
+                            아니오
+                        </button>
+                    </div>
                 </div>
-            </div>
-        `;
-    } else if (isCurrentAnalysis && STATE.relatedProducts && STATE.relatedProducts.length > 0) {
-        // 유사 상품 링크가 있는 경우 표시
-        const productsList = STATE.relatedProducts.map((link, index) => `
-            <div class="p-4 bg-gray-50 rounded-lg border border-gray-200 hover:bg-gray-100 transition-colors">
-                <div class="flex items-center justify-between">
-                    <div class="flex-1">
-                        <div class="text-sm font-semibold text-gray-700 mb-1">유사 상품 ${index + 1}</div>
-                        <a href="${link}" target="_blank" class="text-sm text-indigo-600 hover:text-indigo-800 hover:underline break-all">
-                            ${link}
+            `;
+        } else if (STATE.recommendChoice === 'yes') {
+            // 예를 선택한 경우
+            if (STATE.relatedProducts && STATE.relatedProducts.length > 0) {
+                // 유사 상품 링크가 있는 경우 표시
+                const productsList = STATE.relatedProducts.map((link, index) => `
+                    <div class="p-4 bg-gray-50 rounded-lg border border-gray-200 hover:bg-gray-100 transition-colors">
+                        <div class="flex items-center justify-between">
+                            <div class="flex-1">
+                                <div class="text-sm font-semibold text-gray-700 mb-1">유사 상품 ${index + 1}</div>
+                                <a href="${link}" target="_blank" class="text-sm text-indigo-600 hover:text-indigo-800 hover:underline break-all">
+                                    ${link}
+                                </a>
+                            </div>
+                            <a href="${link}" target="_blank" class="ml-4 px-3 py-1 bg-indigo-600 text-white text-xs rounded-lg hover:bg-indigo-700 transition-colors">
+                                열기
+                            </a>
+                        </div>
+                    </div>
+                `).join('');
+                
+                relatedProductsHtml = `
+                    <div class="mt-8 pt-6 border-t bg-white p-6 rounded-lg shadow-md">
+                        <h3 class="text-lg font-bold text-gray-900 mb-4">💡 추천 유사 상품</h3>
+                        <div class="space-y-3">
+                            ${productsList}
+                        </div>
+                    </div>
+                `;
+            } else if (STATE.relatedProducts && STATE.relatedProducts.length === 0) {
+                // 유사 상품을 찾지 못한 경우
+                relatedProductsHtml = `
+                    <div class="mt-8 pt-6 border-t bg-white p-6 rounded-lg shadow-md">
+                        <h3 class="text-lg font-bold text-gray-900 mb-4">💡 유사 상품 추천</h3>
+                        <p class="text-sm text-gray-500">유사 상품을 찾지 못했습니다.</p>
+                    </div>
+                `;
+            }
+            // relatedProducts가 null인 경우 (아직 수집 중)는 아무것도 표시하지 않음
+        }
+        // STATE.recommendChoice === 'no'인 경우는 아무것도 표시하지 않음
+    } else {
+        // 라이브러리에서 불러온 경우: 저장된 유사 상품 링크 표시
+        if (savedRelatedProducts && Array.isArray(savedRelatedProducts) && savedRelatedProducts.length > 0) {
+            const productsList = savedRelatedProducts.map((link, index) => `
+                <div class="p-4 bg-gray-50 rounded-lg border border-gray-200 hover:bg-gray-100 transition-colors">
+                    <div class="flex items-center justify-between">
+                        <div class="flex-1">
+                            <div class="text-sm font-semibold text-gray-700 mb-1">유사 상품 ${index + 1}</div>
+                            <a href="${link}" target="_blank" class="text-sm text-indigo-600 hover:text-indigo-800 hover:underline break-all">
+                                ${link}
+                            </a>
+                        </div>
+                        <a href="${link}" target="_blank" class="ml-4 px-3 py-1 bg-indigo-600 text-white text-xs rounded-lg hover:bg-indigo-700 transition-colors">
+                            열기
                         </a>
                     </div>
-                    <a href="${link}" target="_blank" class="ml-4 px-3 py-1 bg-indigo-600 text-white text-xs rounded-lg hover:bg-indigo-700 transition-colors">
-                        열기
-                    </a>
                 </div>
-            </div>
-        `).join('');
-        
-        relatedProductsHtml = `
-            <div class="mt-8 pt-6 border-t bg-white p-6 rounded-lg shadow-md">
-                <h3 class="text-lg font-bold text-gray-900 mb-4">💡 추천 유사 상품</h3>
-                <div class="space-y-3">
-                    ${productsList}
+            `).join('');
+            
+            relatedProductsHtml = `
+                <div class="mt-8 pt-6 border-t bg-white p-6 rounded-lg shadow-md">
+                    <h3 class="text-lg font-bold text-gray-900 mb-4">💡 추천 유사 상품</h3>
+                    <div class="space-y-3">
+                        ${productsList}
+                    </div>
                 </div>
-            </div>
-        `;
-    } else if (isCurrentAnalysis && STATE.relatedProducts && STATE.relatedProducts.length === 0) {
-        // 유사 상품을 찾지 못한 경우
-        relatedProductsHtml = `
-            <div class="mt-8 pt-6 border-t bg-white p-6 rounded-lg shadow-md">
-                <h3 class="text-lg font-bold text-gray-900 mb-4">💡 유사 상품 추천</h3>
-                <p class="text-sm text-gray-500">유사 상품을 찾지 못했습니다.</p>
-            </div>
-        `;
+            `;
+        }
     }
 
     return `
@@ -596,7 +661,7 @@ function getAnalysisCard(dbResult) {
                 ${keywordsAnalysisHtml}
             </div>
             ${relatedProductsHtml}
-            ${isCurrentAnalysis ?
+            ${isCurrentAnalysis && STATE.recommendChoice !== null && (STATE.recommendChoice === 'no' || (STATE.recommendChoice === 'yes' && STATE.relatedProducts !== null)) ?
             `<div class="mt-8 pt-6 border-t text-center sticky bottom-0 bg-white p-4 shadow-xl rounded-lg">
                     <button onclick="handleSaveAnalysis()" class="flex items-center justify-center w-full max-w-md mx-auto bg-indigo-600 text-white p-3 rounded-lg font-semibold hover:bg-indigo-700 transition-colors duration-200 shadow-md">
                         <svg class="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7H5a2 2 0 00-2 2v9a2 2 0 002 2h14a2 2 0 002-2V9a2 2 0 00-2-2h-3m-1 4L12 7l-4 4m0 0l4 4m-4-4h8"></path></svg>

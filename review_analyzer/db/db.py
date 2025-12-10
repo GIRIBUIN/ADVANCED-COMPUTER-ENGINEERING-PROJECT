@@ -229,4 +229,13 @@ def does_analysis_exist(analysis_id):
     sql = "SELECT analysis_id FROM ANALYSES WHERE analysis_id = %s"
     cursor.execute(sql, (analysis_id,))
     return cursor.fetchone()
+
+
+def update_analysis_text(analysis_id, analysis_text):
+    """ 기존 분석 결과의 analysis_text를 업데이트합니다. """
+    # [!] 이 함수는 commit을 하지 않습니다. 호출한 쪽(facade)에서 트랜잭션을 관리합니다.
+    db = get_db()
+    cursor = db.cursor()
+    sql = "UPDATE ANALYSES SET analysis_text = %s WHERE analysis_id = %s"
+    cursor.execute(sql, (analysis_text, analysis_id))
     
