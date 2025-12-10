@@ -90,14 +90,18 @@ def delete_user(user_id):
 #                  ANALYSIS 및 LIBRARY 관련 함수
 # ======================================================================
 
-def save_analysis(analysis_id, url, analysis_text, category_id):
-    """ 분석 결과를 ANALYSES 테이블에 저장합니다. """
-    # [!] 이 함수는 commit을 하지 않습니다. 호출한 쪽(facade)에서 트랜잭션을 관리합니다.
+def save_analysis(analysis_id, url, analysis_text, category_id, recommended_info=None):
+    """ 
+    분석 결과와 (선택적으로) 추천 상품 정보를 ANALYSES 테이블에 저장합니다.
+    """
     db = get_db()
     cursor = db.cursor()
-    sql = "INSERT INTO ANALYSES (analysis_id, url, analysis_text, category_id) VALUES (%s, %s, %s, %s)"
-    cursor.execute(sql, (analysis_id, url, analysis_text, category_id))
-
+    recommended_info_json = json.dumps(recommended_info, ensure_ascii=False) if recommended_info else None
+    sql = """
+        INSERT INTO ANALYSES (analysis_id, url, analysis_text, category_id, recommended_info) 
+        VALUES (%s, %s, %s, %s, %s)
+    """
+    cursor.execute(sql, (analysis_id, url, analysis_text, category_id, recommended_info_json))
 
 def link_analysis_to_keywords(analysis_id, keyword_ids):
     """ 분석 ID와 키워드 ID들을 ANALYSIS_KEYWORDS 테이블에 연결합니다. """
@@ -172,16 +176,17 @@ def get_library_by_user_id(user_id):
 
 
 def get_analyses_by_ids(analysis_id_list):
-    """ analysis_id 리스트를 받아 상세 분석 정보가 담긴 딕셔너리 리스트를 반환합니다. """
+    """ 
+    analysis_id 리스트를 받아 상세 분석 정보를 반환합니다. 
+    (recommended_info 포함)
+    """
     if not analysis_id_list:
         return []
-
     db = get_db()
     cursor = db.cursor()
-    
     placeholders = ', '.join(['%s'] * len(analysis_id_list))
-    sql = f"SELECT * FROM ANALYSES WHERE analysis_id IN ({placeholders})"
-    
+    # SELECT 절에 recommended_info 추가
+    sql = f"SELECT analysis_id, url, analysis_text, category_id, analyzed_at, recommended_info FROM ANALYSES WHERE analysis_id IN ({placeholders})"
     cursor.execute(sql, tuple(analysis_id_list))
     return cursor.fetchall()
 
