@@ -343,6 +343,11 @@ async function handleDeleteReview(analysisId) {
             // 서버에서 최신 라이브러리 목록을 다시 가져옴 (동기화 보장)
             await loadSavedReviews();
             
+            // 현재 화면이 저장된 리뷰 화면이면 화면을 다시 렌더링
+            if (STATE.currentScreen === 'savedReviews') {
+                renderSavedReviews();
+            }
+            
             // 성공 모달 표시
             showModal(getMessageModal('삭제 완료', '저장된 리뷰가 성공적으로 삭제되었습니다.'));
         } else {
