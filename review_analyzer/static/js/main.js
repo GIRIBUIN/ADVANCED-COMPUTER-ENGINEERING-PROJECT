@@ -19,7 +19,6 @@ const elements = {
     currentUsername: document.getElementById('current-username'),
     modalContainer: document.getElementById('modal-container'),
 };
-
 // --- 초기화 ---
 async function initialize() {
     // 서버에 현재 로그인 상태를 확인하여 초기 상태를 설정
@@ -131,11 +130,14 @@ async function checkLoginStatus() {
         STATE.isAuthenticated = false;
     }
 }
-
 async function handleLogin(e) {
     e.preventDefault();
     const form = e.target;
     const user_name = form.user_name.value;
+    const messageBox = document.getElementById('login-message'); // 메시지 박스 선택
+
+    // 메시지 초기화
+    messageBox.innerText = '';
 
     try {
         const response = await fetch('/api/login', {
@@ -148,13 +150,14 @@ async function handleLogin(e) {
         if (response.ok) {
             STATE.isAuthenticated = true;
             STATE.user = { user_id: data.user_id, user_name: user_name };
-            closeModal();
+            closeModal(); // 성공 시 모달 닫기 (메시지 없음)
             changeScreen('currentAnalysis');
         } else {
-            alert(data.message || "로그인에 실패했습니다.");
+            // 실패 시 인라인 메시지 표시
+            messageBox.innerText = data.message || "로그인에 실패했습니다. 아이디를 확인해주세요.";
         }
     } catch (error) {
-        alert("서버와 통신 중 오류가 발생했습니다.");
+        messageBox.innerText = "서버와 통신 중 오류가 발생했습니다.";
     }
 }
 
@@ -162,9 +165,15 @@ async function handleRegister(e) {
     e.preventDefault();
     const form = e.target;
     const user_name = form.user_name.value;
+    const messageBox = document.getElementById('register-message'); // 메시지 박스 선택
+
+    // 메시지 초기화
+    messageBox.innerText = '';
+    messageBox.classList.remove('text-green-600'); // 성공 색상 제거
+    messageBox.classList.add('text-red-500'); // 실패 색상 기본
 
     if (!user_name) {
-        alert("아이디를 입력해야 합니다.");
+        messageBox.innerText = "아이디를 입력해야 합니다.";
         return;
     }
 
@@ -177,25 +186,41 @@ async function handleRegister(e) {
         const data = await response.json();
 
         if (response.status === 201) {
-            alert("회원가입이 완료되었습니다. 로그인 해주세요.");
+            // 성공 시: 로그인 화면으로 전환 (alert 제거)
             changeScreen('login');
+            // 로그인 화면으로 전환된 후, 로그인 폼의 메시지 박스에 안내 문구를 띄우고 싶다면 
+            // 약간의 딜레이 후 DOM 조작이 필요하지만, 
+            // 요청하신 대로 '로그인 창으로 넘어가는 것'만으로 충분하다면 여기까지만 작성합니다.
         } else {
-            alert(data.message || "회원가입에 실패했습니다.");
+            // 실패 시 (중복 아이디 등): 인라인 메시지 표시
+            messageBox.innerText = data.message || "회원가입에 실패했습니다.";
         }
     } catch (error) {
-        alert("서버와 통신 중 오류가 발생했습니다.");
+        messageBox.innerText = "서버와 통신 중 오류가 발생했습니다.";
     }
 }
 
 async function handleLogout() {
     try {
         await fetch('/api/logout', { method: 'POST' });
+        
+        // 1. 상태 완전 초기화
         STATE.isAuthenticated = false;
         STATE.user = { user_id: null, user_name: null };
-        alert("로그아웃되었습니다.");
-        changeScreen('currentAnalysis'); // 로그아웃 후 메인 화면으로
+        STATE.chatHistory = [];     // 채팅 기록 초기화
+        STATE.analysisResult = null; // 분석 결과 초기화
+        STATE.savedData = [];
+        STATE.tempUrl = null;
+        STATE.relatedProducts = null;
+        STATE.recommendChoice = null;
+
+        // 2. 알림창(alert) 없이 바로 UI 업데이트
+        // 'currentAnalysis' 화면을 강제로 다시 그려서 초기화된 상태(Welcome 메시지)를 보여줌
+        changeScreen('currentAnalysis'); 
+        
     } catch (error) {
-        alert("로그아웃 처리 중 오류가 발생했습니다.");
+        console.error("로그아웃 처리 중 오류:", error);
+        // 로그아웃 오류는 사용자에게 굳이 알리지 않고 조용히 처리하거나 콘솔에만 남김
     }
 }
 
@@ -435,7 +460,10 @@ function getLoginForm() {
                   <label for="login-username" class="block text-sm font-medium text-gray-700 mb-1">아이디</label>
                   <input type="text" id="login-username" name="user_name" required class="w-full p-3 border border-gray-300 rounded-lg focus:ring-indigo-500 focus:border-indigo-500">
               </div>
-              <button type="submit" class="w-full bg-indigo-600 text-white p-3 rounded-lg font-semibold hover:bg-indigo-700 transition-colors duration-200 mt-6">로그인</button>
+              
+              <div id="login-message" class="text-red-500 text-sm text-center mb-4 min-h-[20px]"></div>
+
+              <button type="submit" class="w-full bg-indigo-600 text-white p-3 rounded-lg font-semibold hover:bg-indigo-700 transition-colors duration-200">로그인</button>
           </form>
           <div class="mt-4 text-center text-sm">
               계정이 없으신가요? <a href="#" onclick="changeScreen('register')" class="text-indigo-600 font-medium hover:underline">회원가입</a>
@@ -453,7 +481,10 @@ function getRegisterForm() {
                   <label for="register-username" class="block text-sm font-medium text-gray-700 mb-1">아이디</label>
                   <input type="text" id="register-username" name="user_name" required class="w-full p-3 border border-gray-300 rounded-lg focus:ring-indigo-500 focus:border-indigo-500">
               </div>
-              <button type="submit" class="w-full bg-indigo-600 text-white p-3 rounded-lg font-semibold hover:bg-indigo-700 transition-colors duration-200 mt-6">회원가입</button>
+
+              <div id="register-message" class="text-red-500 text-sm text-center mb-4 min-h-[20px]"></div>
+
+              <button type="submit" class="w-full bg-indigo-600 text-white p-3 rounded-lg font-semibold hover:bg-indigo-700 transition-colors duration-200">회원가입</button>
           </form>
           <div class="mt-4 text-center text-sm">
               이미 계정이 있으신가요? <a href="#" onclick="changeScreen('login')" class="text-indigo-600 font-medium hover:underline">로그인</a>
