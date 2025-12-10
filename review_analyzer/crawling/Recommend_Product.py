@@ -17,21 +17,43 @@ from selenium.common.exceptions import TimeoutException
 # (참고: ActionChains, random, NoSuchElementException 등은
 #  이 파일에서 사용하는 함수에 필요하지 않아 import에서 제외하거나 주석 처리 가능합니다.)
 
-
 def setup_driver():
-    """undetected_chromedriver 초기화"""
+    """undetected_chromedriver 초기화 (이미지 로딩 차단 + 오류 수정 포함)"""
+    
+    # 이미지 로딩을 차단하는 설정값
+    # 2 = 이미지 로딩 차단, 0 = 기본값(로딩 허용)
+    prefs = {"profile.managed_default_content_settings.images": 2}
+    
+    # -----------------------------------------------------------
+    # 1. 첫 번째 시도를 위한 옵션 생성
+    # -----------------------------------------------------------
     options = uc.ChromeOptions()
     options.add_argument("--disable-blink-features=AutomationControlled")
     options.add_argument("--start-maximized")
+    # [추가됨] 이미지 로딩 차단 옵션 적용
+    options.add_experimental_option("prefs", prefs)
     
     try:
-        driver = uc.Chrome(options=options, version_main=143)
+        # 첫 번째 시도 (버전 지정)
+        driver = uc.Chrome(options=options, version_main=141)
+        
     except Exception as e:
         print(f"[드라이버 로드 오류] {e}")
         print("version_main=141을 제거하고 자동 감지 모드로 다시 시도합니다.")
-        driver = uc.Chrome(options=options)
+        
+        # -----------------------------------------------------------
+        # 2. 재시도를 위해 options 객체를 '새로' 생성 (RuntimeError 방지)
+        # -----------------------------------------------------------
+        new_options = uc.ChromeOptions()
+        new_options.add_argument("--disable-blink-features=AutomationControlled")
+        new_options.add_argument("--start-maximized")
+        # [추가됨] 재시도용 옵션에도 이미지 차단 적용
+        new_options.add_experimental_option("prefs", prefs)
+        
+        # 새로 만든 옵션으로 드라이버 생성
+        driver = uc.Chrome(options=new_options)
+        
     return driver
-
 # ===================================================================
 # [유사 상품 링크 수집 함수]
 # : 상품 URL을 기반으로 키워드를 추출하고,

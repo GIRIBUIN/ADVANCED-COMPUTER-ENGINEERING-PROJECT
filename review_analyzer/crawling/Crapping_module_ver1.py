@@ -46,7 +46,7 @@ def setup_driver(lock=None):
     if lock: lock.acquire()
     
     try:
-        driver = uc.Chrome(options=options, version_main=143)
+        driver = uc.Chrome(options=options, version_main=141)
     except Exception as e:
         try:
             driver = uc.Chrome(options=options)
