@@ -1,4 +1,8 @@
+<<<<<<< HEAD
 # 리뷰 분석 및 요약 서비스 (ReviewAnalyzer)
+=======
+# 딸깍 리뷰 (ReviewAnalyzer)
+>>>>>>> 98fb2c0c66ab1146bfed287d527b680e5309cdde
 
 사용자가 제공하는 제품 링크와 키워드를 기반으로, 리뷰를 AI로 분석 및 요약하여 맞춤형 추천을 제공하는 웹 서비스입니다.
 
@@ -22,6 +26,7 @@
 
 ---
 
+<<<<<<< HEAD
 ## 폴더 구조
 
 ```
@@ -123,3 +128,39 @@ pytohn -m venv venv
 
 4.  그 외
 - 컨테이너 삭제하고 싶으면 'docker compose down' 실행하면 됩니다.
+=======
+
+## 폴더 구조 :
+
+```
+📦RA
+┣ 📂review_analyzer
+┃ ┣ 📂ai
+┃ ┃ ┣ 📜analyzer.py
+┃ ┃ ┣ 📜chatbot.py
+┃ ┃ ┗ 📜__init__.py
+┃ ┣ 📂crawling
+┃ ┃ ┣ 📜Crapping_module_ver1.py
+┃ ┃ ┣ 📜Recommend_Product.py
+┃ ┃ ┗ 📜__init__.py
+┃ ┣ 📂db
+┃ ┃ ┣ 📜db.py
+┃ ┃ ┣ 📜schema.sql
+┃ ┃ ┗ 📜__init__.py
+┃ ┣ 📂static
+┃ ┃ ┣ 📂css
+┃ ┃ ┗ 📂js
+┃ ┃ ┃ ┗ 📜main.js
+┃ ┣ 📂templates
+┃ ┃ ┗ 📜index.html
+┃ ┣ 📜auth.py
+┃ ┣ 📜facade.py
+┃ ┣ 📜routes.py
+┃ ┣ 📜test_routes.py
+┃ ┗ 📜__init__.py
+┣ 📜config.py
+┗ 📜run.py
+```
+
+지금부터 실행 환경은 RA 폴더 아래서
+>>>>>>> 98fb2c0c66ab1146bfed287d527b680e5309cdde
