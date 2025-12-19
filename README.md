@@ -1,8 +1,4 @@
-<<<<<<< HEAD
-# 리뷰 분석 및 요약 서비스 (ReviewAnalyzer)
-=======
 # 딸깍 리뷰 (ReviewAnalyzer)
->>>>>>> 98fb2c0c66ab1146bfed287d527b680e5309cdde
 
 사용자가 제공하는 제품 링크와 키워드를 기반으로, 리뷰를 AI로 분석 및 요약하여 맞춤형 추천을 제공하는 웹 서비스입니다.
 
@@ -26,75 +22,37 @@
 
 ---
 
-<<<<<<< HEAD
-## 폴더 구조
+## 폴더 구조 : venv는 RA 밑에서 하시길
 
 ```
-ReviewAnalyzer:.
-│
-├─archive
-├─docs
-│  ├─01_project_plan
-│  ├─02_requirements
-│  ├─03_mid_design
-│  ├─04_final_report
-│  ├─05_weekly_report
-│  └─meeting_logs
-└─src
-    └─app
-        │  __init__.py
-        ├─static
-        │  ├─css
-        │  │      style.css
-        │  └─js
-        │          main.js
-        └─templates
-                hello.html
+📦RA
+┣ 📂review_analyzer
+┃ ┣ 📂ai
+┃ ┃ ┣ 📜analyzer.py
+┃ ┃ ┣ 📜chatbot.py
+┃ ┃ ┗ 📜__init__.py
+┃ ┣ 📂crawling
+┃ ┃ ┣ 📜Crapping_module_ver1.py
+┃ ┃ ┣ 📜Recommend_Product.py
+┃ ┃ ┗ 📜__init__.py
+┃ ┣ 📂db
+┃ ┃ ┣ 📜db.py
+┃ ┃ ┣ 📜schema.sql
+┃ ┃ ┗ 📜__init__.py
+┃ ┣ 📂static
+┃ ┃ ┣ 📂css
+┃ ┃ ┗ 📂js
+┃ ┃ ┃ ┗ 📜main.js
+┃ ┣ 📂templates
+┃ ┃ ┗ 📜index.html
+┃ ┣ 📜auth.py
+┃ ┣ 📜facade.py
+┃ ┣ 📜routes.py
+┃ ┣ 📜test_routes.py
+┃ ┗ 📜__init__.py
+┣ 📜config.py
+┗ 📜run.py
 ```
-
----
-
-## Git 브랜치 전략 및 협업 워크플로우
-
-`main` 브랜치의 안정성을 유지하기 위해서 **Pull Request 기반의 워크플로우**를 따릅니다.
-
-### 협업 절차 (매우 중요!)
-
-**Step 1: 작업 시작 전, `main`의 최신 내용을 내 브랜치로 가져오기**
-
-```bash
-# 1. 내 개인 브랜치로 이동
-git checkout branchname
-
-# 2. main 브랜치의 최신 내용을 내 브랜치로 pull
-git pull origin main
-```
-
-**Step 2:내 브랜치에 Push**
-
-- 각자 맡은 기능을 자유롭게 개발하고, 작업 단위로 커밋(Commit).
-- 작업이 완료되면, 자신의 원격 브랜치에 푸시(Push).
-
-```bash
-# 예시
-git add .
-git commit -m "feat: 크롤링 기능 구현"
-git push origin branchname
-```
-
-**Step 3: Pull Request (PR) 생성**
-
-- 기능 개발이 완료되어 `main` 브랜치에 합치고 싶을 때, GitHub에서 **Pull Request**를 생성합니다.
-- **Base Branch: `main` <- Compare Branch: `branchname`** (내 브랜치 -> main)
-- 어떤 작업을 했는지 다른 팀원들이 이해하기 쉽도록 제목과 설명을 상세히 작성합니다.
-
-**Step 4: 코드 리뷰 및 Merge**
-
-- PR이 생성되면 **카카오톡/디코로 팀원들에게 리뷰를 요청**합니다.
-- 모든 팀원은 PR에 올라온 코드를 확인하고 의견을 제시합니다.
-- **최소 1명 이상의 팀원에게 `Approve`(승인)를 받은 후**, PR을 생성한 사람이 `Merge` 버튼을 눌러 `main` 브랜치에 코드를 반영합니다.
-
----
 
 ## 개발 환경 설정
 
@@ -128,39 +86,3 @@ pytohn -m venv venv
 
 4.  그 외
 - 컨테이너 삭제하고 싶으면 'docker compose down' 실행하면 됩니다.
-=======
-
-## 폴더 구조 :
-
-```
-📦RA
-┣ 📂review_analyzer
-┃ ┣ 📂ai
-┃ ┃ ┣ 📜analyzer.py
-┃ ┃ ┣ 📜chatbot.py
-┃ ┃ ┗ 📜__init__.py
-┃ ┣ 📂crawling
-┃ ┃ ┣ 📜Crapping_module_ver1.py
-┃ ┃ ┣ 📜Recommend_Product.py
-┃ ┃ ┗ 📜__init__.py
-┃ ┣ 📂db
-┃ ┃ ┣ 📜db.py
-┃ ┃ ┣ 📜schema.sql
-┃ ┃ ┗ 📜__init__.py
-┃ ┣ 📂static
-┃ ┃ ┣ 📂css
-┃ ┃ ┗ 📂js
-┃ ┃ ┃ ┗ 📜main.js
-┃ ┣ 📂templates
-┃ ┃ ┗ 📜index.html
-┃ ┣ 📜auth.py
-┃ ┣ 📜facade.py
-┃ ┣ 📜routes.py
-┃ ┣ 📜test_routes.py
-┃ ┗ 📜__init__.py
-┣ 📜config.py
-┗ 📜run.py
-```
-
-지금부터 실행 환경은 RA 폴더 아래서
->>>>>>> 98fb2c0c66ab1146bfed287d527b680e5309cdde
