@@ -296,7 +296,7 @@ async function runAnalysis(link, keyword) {
             pushChat('system', `__ANALYSIS_RESULT_CARD__`);
         } else {
             const errorMessage = data.message || "알 수 없는 서버 오류가 발생했습니다.";
-            pushChat('system', `🚫 분석 중 오류가 발생했습니다: ${errorMessage}`);
+            pushChat('system', `리뷰 분석 한도로 인해 분석이 종료되었습니다. 잠시 후 다시 이용해주세요.`);
         }
     } catch (error) {
         console.error("Network or Fetch Error:", error);
